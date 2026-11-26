@@ -1,0 +1,71 @@
+# Wildlife Window
+
+**A relaxing, browser-based 2D wildlife spotting game.**
+
+The player stays inside a small house near a jungle and watches the forest through one window. Animals and birds appear unpredictably. The player observes the scene, zooms in and captures a snapshot.
+
+This repository contains the playable first prototype and the product/technical documentation needed by developers and AI coding agents.
+
+## Current prototype
+
+- One illustrated jungle environment and one window view
+- Morning/daytime atmosphere
+- 13 animal/bird entries with rarity weights
+- Random appearances and simple movement
+- Zoom controls
+- Capture downloads the current canvas as a PNG
+- Responsive desktop and mobile browser layout
+- No accounts, backend, database, analytics, or saved player records
+
+## Run locally
+
+Open `index.html` in a browser, or use VS Code with the Live Server extension.
+
+## Publish with GitHub Pages
+
+1. Push the repository to GitHub.
+2. Open **Settings → Pages**.
+3. Select **Deploy from a branch**.
+4. Select `main` and `/ (root)`, then save.
+5. Open the Pages URL shown by GitHub after deployment.
+
+The site is static and does not require a build command.
+
+## Start here if you are an AI coding agent
+
+Read these files in order:
+
+1. [`AGENTS.md`](AGENTS.md) – instructions and non-negotiable project constraints.
+2. [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) – product purpose and scope.
+3. [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) – intended player experience and core loop.
+4. [`docs/TECHNICAL_ARCHITECTURE.md`](docs/TECHNICAL_ARCHITECTURE.md) – current implementation and extension guidance.
+5. [`docs/ROADMAP.md`](docs/ROADMAP.md) – staged development plan.
+6. [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) – what exists and what is not implemented.
+
+## Repository structure
+
+```text
+wildlife-window/
+├── index.html             # Browser entry point
+├── css/
+│   └── style.css          # Responsive game interface
+├── js/
+│   └── game.js            # Canvas rendering and prototype game logic
+├── assets/
+│   └── README.md          # Guidance for future art/audio assets
+├── docs/
+│   ├── PROJECT_OVERVIEW.md
+│   ├── GAME_DESIGN.md
+│   ├── TECHNICAL_ARCHITECTURE.md
+│   ├── CONTENT_AND_RARITY.md
+│   ├── ROADMAP.md
+│   ├── CURRENT_STATUS.md
+│   └── DECISIONS.md
+├── AGENTS.md              # Instructions for AI coding agents
+├── CONTRIBUTING.md
+└── .gitignore
+```
+
+## Design principle
+
+**The game is about curiosity, not speed.** The player should enjoy looking, listening, noticing movement, and occasionally discovering an animal. Avoid turning the experience into a stressful task or a complex management game.

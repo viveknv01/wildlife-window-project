@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#18251f">
+  <title>Wildlife Window</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">✳</div>
+        <div><h1>Wildlife Window</h1><p>A little quiet time in the forest</p></div>
+      </div>
+      <div class="status"><span class="sun">☀</span><span id="timeLabel">Morning · 08:15</span><span class="dot"></span><span id="weatherLabel">Clear</span></div>
+    </header>
+
+    <section class="scene-wrap" aria-label="View through a forest window">
+      <canvas id="scene" aria-label="Animated jungle scene"></canvas>
+      <div class="scene-vignette"></div>
+      <div class="window-frame">
+        <div class="window-top"></div><div class="window-left"></div><div class="window-right"></div><div class="window-bottom"></div>
+        <div class="crossbar-v"></div><div class="crossbar-h"></div>
+      </div>
+      <div class="scene-hud">
+        <div class="hud-pill"><span class="live-dot"></span> FOREST VIEW</div>
+        <div class="hud-pill" id="sightingHint">Listen to the forest</div>
+      </div>
+      <div class="toast" id="toast" aria-live="polite"></div>
+      <div class="capture-flash" id="flash"></div>
+    </section>
+
+    <section class="control-panel">
+      <div class="observation">
+        <div class="eyebrow">YOUR OBSERVATION DECK</div>
+        <h2 id="messageTitle">The forest is waking up</h2>
+        <p id="messageText">Take a slow look. You never know what might wander by.</p>
+      </div>
+      <div class="controls">
+        <button class="tool-button" id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button>
+        <div class="zoom-readout"><strong id="zoomLabel">1.0×</strong><span>ZOOM</span></div>
+        <button class="tool-button" id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button>
+        <button class="capture-button" id="capture"><span class="camera-icon">◎</span><span>Capture</span></button>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-note"><span class="tiny-leaf">❧</span> No rush. Just watch.</div>
+      <div class="legend"><span><i class="legend-dot common"></i>Common</span><span><i class="legend-dot uncommon"></i>Uncommon</span><span><i class="legend-dot rare"></i>Rare</span></div>
+      <div class="footer-right">Prototype · Nothing is saved</div>
+    </footer>
+  </main>
+  <script src="js/game.js"></script>
+</body>
+</html>
