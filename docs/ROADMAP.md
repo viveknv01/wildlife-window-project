@@ -29,22 +29,35 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [x] Better capture feedback and camera framing
 - [x] Binoculars: toggle button, round lens aimed by mouse or finger
 - [x] Small wildlife visible only through the binoculars (hare, babbler, mongoose, pitta)
+- [ ] Binoculars-only monkey troop (backlog — ideas only, not scheduled)
+  - Rare; groups of 3–7
+  - Mostly in the trees / canopy, not the clearing floor
+  - Jumping from tree to tree
+  - Same spotting rules as current binoculars-only wildlife
 - [x] Richer procedural forest and animal art (shading, texture, detail)
 - [ ] Improve performance on lower-end phones
 
 ## Stage 3 — Environment variation
 
 - [ ] Day-to-evening transition
-- [ ] Night scene
+- [ ] Night scene (backlog detail — ideas only, not scheduled)
+  - Fully dark night option and softer moonlight option
+  - Very rare: many fireflies moving across the clearing
+  - Owl: only findable with torch and/or binoculars (night analogue of binoculars-only wildlife)
+  - Night binoculars: area outside the lens is fully black (stronger than daytime dimming)
 - [ ] Weather variation
 - [ ] Seasonal variation
-- [ ] Torch/night-vision mechanics
+- [ ] Torch/night-vision mechanics (backlog detail — ideas only, not scheduled)
+  - Optional aimable torch beam for spotting
+  - Eye-shine (deer and other night animals) when the beam catches them — natural reflection, not a HUD marker
+  - Some animals flee when lit by the torch; spotted deer, gaur, and boar stay calmer / do not bolt from the beam alone
+  - Keep the feel observational and calm; torch is for spotting, not chasing
 
 ## Stage 4 — Deeper wildlife behaviour
 
 - [x] Idle activities (grazing, drinking, sitting, resting) and walk-in/walk-out entrances without fades
 - [x] Prey flee when a predator appears
-- [ ] Animal awareness and disturbance reactions (beyond predator flight)
+- [ ] Animal awareness and disturbance reactions (beyond predator flight; includes torch-light disturbance from Stage 3)
 - [ ] Alarm calls
 - [ ] Species-specific habitat and time preferences
 - [x] Group sightings and animal interactions
