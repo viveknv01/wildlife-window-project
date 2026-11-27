@@ -22,8 +22,25 @@ The prototype includes these species and variants. Index `i` matches the array o
 | 13 | Sloth Bear | Very rare | Solo |
 | 14 | Black Leopard | Ultra Rare | Solo melanistic leopard |
 | 15 | Wild Dog | Rare | Small pack (2–4) |
+| 16 | Indian hare | Common | Binoculars only · solo or pair (1–2) |
+| 17 | Jungle babbler | Common | Binoculars only · small party (2–4) hopping on the ground |
+| 18 | Indian grey mongoose | Uncommon | Binoculars only · solo, quick |
+| 19 | Indian pitta | Rare | Binoculars only · solo |
 
 Tiger, Leopard, Black Leopard, and Wild Dog are predators (`predator: true`).
+
+### Small wildlife (binoculars only)
+
+Entries marked `binocularOnly: true` are too small to make out with the naked eye. They are in the clearing and keep moving, but are only drawn inside the binocular lens.
+
+- They do not use the regular spawn table. Every 12–24 seconds one small group may wander in, up to 4 small animals at a time, and none arrive while a predator is in the clearing.
+- They always linger, and they arrive without any on-screen announcement. Aiming the lens at one shows its name and rarity.
+- They do not count toward gatherings, quiet periods, or the conditions for special events.
+- Hares and mongooses run from predators like other prey; the small birds stay.
+- Capture only identifies them when the binoculars are up and the animal is inside the lens.
+- In the test gallery they are drawn without the binoculars so they can be previewed.
+
+The small-wildlife settings (`BINOC_ZOOM`, `SMALL_CAP`, lens size in `lensRadius`) are near the top of `js/game.js`.
 
 ## Special wildlife events
 
@@ -83,7 +100,7 @@ Use these URLs to preview every animal or event one by one (works on desktop and
 - Animals: `index.html?test=1A` or `index.html?test=1A&i=N`
 - Events: `index.html?test=1E` or `index.html?test=1E&i=N`
 
-Tap the scene (or Capture) to advance to the next index. Normal play is unchanged when `?test=` is omitted.
+Tap the scene (or Capture) to advance to the next index. While the binoculars are up, tapping the scene aims the lens instead, so use Capture to advance. Normal play is unchanged when `?test=` is omitted.
 
 In the gallery each animal walks in from the side (visible after a few seconds), lingers for about 40 seconds, leaves, and then walks in again.
 

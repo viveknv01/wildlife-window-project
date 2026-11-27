@@ -26,7 +26,7 @@ The first prototype intentionally includes only:
 - 10–15 animal and bird types
 - Random animal appearances
 - Simple movement
-- Zoom
+- Binoculars (a round, aimable magnified lens) and a few small animals that can only be seen through them
 - Screenshot capture
 - Basic rarity
 
@@ -36,7 +36,6 @@ The first prototype intentionally includes only:
 - Night mode and seasons
 - Weather simulation
 - Torch and night vision
-- Binocular-specific mechanics
 - Animal soundscape and alarm calls
 - Complex animal AI or predator/prey simulation
 - Player accounts, records, achievements, cloud saves, and leaderboards

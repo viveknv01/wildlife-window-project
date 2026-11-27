@@ -2,7 +2,7 @@
 
 **A relaxing, browser-based 2D wildlife spotting game.**
 
-The player stays inside a small house near a jungle and watches the forest through one window. Animals and birds appear unpredictably. The player observes the scene, zooms in and captures a snapshot.
+The player stays inside a small house near a jungle and watches the forest through one window. Animals and birds appear unpredictably. The player observes the scene, raises the binoculars for a closer look, and captures a snapshot.
 
 This repository contains the playable first prototype and the product/technical documentation needed by developers and AI coding agents.
 
@@ -10,11 +10,11 @@ This repository contains the playable first prototype and the product/technical 
 
 - One illustrated jungle environment and one window view
 - Morning/daytime atmosphere
-- 16 animal/bird entries (with small herds for deer and gaur, a rare lone gaur bull, and wild dog packs)
+- 20 animal/bird entries (with small herds for deer and gaur, a rare lone gaur bull, and wild dog packs), including 4 small animals that are only visible through the binoculars
 - 8 special wildlife encounter events (Rare, Very rare, Ultra Rare, and Legendary)
 - Animals walk in and out, linger to graze, drink, or rest, and run from predators
 - Random appearances and simple movement
-- Zoom controls
+- Binoculars: a round magnified lens aimed with the mouse or a finger
 - Capture downloads the current canvas as a PNG
 - Responsive desktop and mobile browser layout
 - No accounts, backend, database, analytics, or saved player records

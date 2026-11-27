@@ -10,7 +10,7 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [x] 10–15 animal/bird entries
 - [x] Random appearances
 - [x] Basic movement
-- [x] Zoom
+- [x] Zoom (now an aimable binocular lens instead of whole-canvas zoom)
 - [x] PNG screenshot download
 - [x] Basic rarity weights
 - [x] Responsive browser layout
@@ -25,6 +25,9 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [x] Better depth/occlusion so animals can hide behind foliage
 - [ ] Optional animal sound cues
 - [x] Better capture feedback and camera framing
+- [x] Binoculars: toggle button, round lens aimed by mouse or finger
+- [x] Small wildlife visible only through the binoculars (hare, babbler, mongoose, pitta)
+- [x] Richer procedural forest and animal art (shading, texture, detail)
 - [ ] Improve performance on lower-end phones
 
 ## Stage 3 — Environment variation

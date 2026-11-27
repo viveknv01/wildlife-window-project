@@ -19,8 +19,16 @@
     { name: 'Asian Elephant Tusk', kind: 'elephant', tusks: true, rarity: 'Very rare', weight: 1.0, scale: 1.4, color: '#636860' },
     { name: 'Sloth Bear', kind: 'bear', rarity: 'Very rare', weight: 1.0, scale: 1.02, color: '#272322' },
     { name: 'Black Leopard', kind: 'leopard', black: true, predator: true, rarity: 'Ultra Rare', weight: 0.45, scale: 1.14, color: '#1b1d24' },
-    { name: 'Wild Dog', kind: 'wildDog', predator: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#b5562b', group: [2, 4] }
+    { name: 'Wild Dog', kind: 'wildDog', predator: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#b5562b', group: [2, 4] },
+    // Small wildlife: too small to make out with the naked eye, only drawn through the binoculars (binocularOnly)
+    { name: 'Indian hare', kind: 'rabbit', binocularOnly: true, rarity: 'Common', weight: 10, scale: 0.8, color: '#9a7b58', group: [1, 2] },
+    { name: 'Jungle babbler', kind: 'smallBird', sub: 'babbler', binocularOnly: true, rarity: 'Common', weight: 9, scale: 0.75, speedMul: 0.9, color: '#8a7d6c', group: [2, 4] },
+    { name: 'Indian grey mongoose', kind: 'mongoose', binocularOnly: true, rarity: 'Uncommon', weight: 5, scale: 0.6, speedMul: 1.5, color: '#8b8475' },
+    { name: 'Indian pitta', kind: 'smallBird', sub: 'pitta', binocularOnly: true, rarity: 'Rare', weight: 1.5, scale: 0.7, speedMul: 0.9, color: '#4f8a4a' }
   ];
+  // Larger animals share the regular spawn table; small wildlife comes and goes on its own quiet schedule
+  const mainAnimals = animals.filter(a => !a.binocularOnly);
+  const smallAnimals = animals.filter(a => a.binocularOnly);
 
   const events = [
     {
@@ -260,10 +268,17 @@
   let testIndex = Math.max(0, parseInt(urlParams.get('i') || '0', 10) || 0);
   let galleryHoldUntil = 0;
 
-  let w = 900, h = 520, dpr = 1, last = 0, zoom = 1, creatures = [], nextSpawn = 2.2, elapsed = 0, toastTimer = 0, wind = 0;
+  let w = 900, h = 520, dpr = 1, last = 0, creatures = [], nextSpawn = 2.2, nextSmall = 5, elapsed = 0, toastTimer = 0, wind = 0;
   let activeEvent = null;
   let eventCooldown = 0;
   let pointer = { x: 0, y: 0 };
+
+  // ---- Binoculars: a round magnified lens that follows the mouse or finger ----
+  const BINOC_ZOOM = 2.2;       // magnification inside the lens
+  const SMALL_CAP = 4;          // most small (binocular-only) animals in the clearing at once
+  let binoculars = false;
+  let aim = { x: 450, y: 260 }; // point of the scene the lens is centred on (canvas coordinates)
+  let lensFind = null;          // small animal currently noticed through the lens
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pickWeighted = list => {
@@ -292,10 +307,13 @@
     bear: ['graze', 'wait', 'walk', 'sit'],
     tiger: ['walk', 'wait', 'sit', 'drink'],
     leopard: ['walk', 'wait', 'sit', 'drink'],
-    wildDog: ['walk', 'wait', 'sit', 'drink']
+    wildDog: ['walk', 'wait', 'sit', 'drink'],
+    rabbit: ['graze', 'graze', 'wait', 'walk', 'rest'],
+    mongoose: ['walk', 'walk', 'wait', 'graze', 'drink'],
+    smallBird: ['graze', 'graze', 'walk', 'walk', 'wait']
   };
   // Local Y of the feet for each kind (used for the lying-down pose)
-  const FEET_Y = { deer: 24, boar: 21, gaur: 28, elephant: 35, peacock: 21, bear: 21, tiger: 24, leopard: 24, wildDog: 21 };
+  const FEET_Y = { deer: 24, boar: 21, gaur: 28, elephant: 35, peacock: 21, bear: 21, tiger: 24, leopard: 24, wildDog: 21, rabbit: 9, mongoose: 8, smallBird: 6.5 };
 
   let gaitAmp = 1;              // 1 while walking, 0 while standing still (scales leg swing)
   let wasEmpty = true, emptyFor = 0, gatherTier = 0;
@@ -307,7 +325,23 @@
   const inView = a => a.x > 0 && a.x < w && a.y < h + 10;
   const pond = () => ({ x: w * 0.6, y: h * 0.735, rx: Math.max(30, w * 0.07), ry: Math.max(5, h * 0.015) });
   // Prey run from predators; birds (including peafowl) and tuskers hold their ground
-  const isPrey = c => !c.fly && !c.predator && c.kind !== 'peacock' && !(c.kind === 'elephant' && c.tusks);
+  const isPrey = c => !c.fly && !c.predator && c.kind !== 'peacock' && c.kind !== 'smallBird' && !(c.kind === 'elephant' && c.tusks);
+
+  // Binocular helpers
+  const lensRadius = () => Math.min(w, h) * 0.3;
+  const aimDist = a => Math.hypot(a.x - aim.x, a.y - aim.y);
+  const inLens = a => aimDist(a) < lensRadius() / BINOC_ZOOM + 16 * a.scale;
+  // Small wildlife is only drawn through the binoculars (always shown in the test gallery)
+  const isShown = a => !a.binocularOnly || binoculars || !!testMode;
+  // What the player can actually see right now: inside the lens, or anywhere in the window without it
+  const isSeen = a => binoculars ? inLens(a) : inView(a) && isShown(a);
+  const hasMainAnimals = () => creatures.some(c => !c.binocularOnly);
+  // Keep the lens far enough from the edges that it never looks past the painted scene
+  function setAim(x, y) {
+    const m = lensRadius() / BINOC_ZOOM;
+    aim.x = clamp(x, m, w - m);
+    aim.y = clamp(y, m, h - m);
+  }
 
   function resize() {
     const r = canvas.getBoundingClientRect();
@@ -317,164 +351,537 @@
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (binoculars) setAim(aim.x, aim.y);
+    else setAim(w / 2, h / 2);
+    rebuildBackdrop();
   }
 
-  function drawBackground(t) {
-    const sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, '#96b49e');
-    sky.addColorStop(0.46, '#b7c69b');
-    sky.addColorStop(1, '#4d6847');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, h);
+  // ---- Scene painting helpers ----
+  const TAU = Math.PI * 2;
+  // Stable pseudo-random value in 0..1 so scenery stays put from frame to frame
+  const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  // Lighten (f > 0) or darken (f < 0) a #rrggbb colour
+  const shadeCache = new Map();
+  function shadeHex(hex, f) {
+    const key = hex + f;
+    let out = shadeCache.get(key);
+    if (out) return out;
+    const n = parseInt(hex.slice(1, 7), 16);
+    const mix = c => Math.round(f >= 0 ? c + (255 - c) * f : c * (1 + f));
+    out = 'rgb(' + mix(n >> 16 & 255) + ',' + mix(n >> 8 & 255) + ',' + mix(n & 255) + ')';
+    shadeCache.set(key, out);
+    return out;
+  }
+  // Top edge of the forest floor at a given x (matches the floor curve in paintBackdrop)
+  const groundTop = x => {
+    const u = clamp(x / Math.max(1, w), 0, 1);
+    return h * ((1 - u) * (1 - u) * 0.63 + 2 * u * (1 - u) * 0.55 + u * u * 0.65);
+  };
+  function disc(g, x, y, r) {
+    g.moveTo(x + r, y);
+    g.arc(x, y, r, 0, TAU);
+  }
+
+  // A tree crown: shaded underside, mid-tone mass, and sunlit leaf clusters on the upper right
+  function crown(g, x, y, r, col, seed) {
+    g.fillStyle = shadeHex(col, -0.24);
+    g.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const ang = k / 6 * TAU + hash(seed + k);
+      disc(g, x + Math.cos(ang) * r * 0.55, y + Math.sin(ang) * r * 0.36, r * (0.48 + hash(seed + k * 3) * 0.24));
+    }
+    disc(g, x, y, r * 0.7);
+    g.fill();
+
+    g.fillStyle = col;
+    g.beginPath();
+    for (let k = 0; k < 5; k++) {
+      const ang = -2.7 + k * 0.58;
+      disc(g, x + Math.cos(ang) * r * 0.5 + r * 0.08, y + Math.sin(ang) * r * 0.36 - r * 0.08, r * (0.3 + hash(seed + 20 + k) * 0.15));
+    }
+    g.fill();
+
+    g.fillStyle = shadeHex(col, 0.1);
+    g.beginPath();
+    for (let k = 0; k < 7; k++) {
+      disc(g, x + (hash(seed + 40 + k) - 0.35) * r * 1.1, y - r * 0.22 - hash(seed + 50 + k) * r * 0.5, r * (0.1 + hash(seed + 60 + k) * 0.1));
+    }
+    g.fill();
+  }
+
+  // A tree trunk with flared roots, light from the right, and bark furrows
+  function trunk(g, x, baseY, topY, wd, col, seed) {
+    const lean = (hash(seed) - 0.5) * wd * 1.4;
+    const span = Math.max(1, baseY - topY);
+    const grad = g.createLinearGradient(x - wd * 0.6, 0, x + wd * 0.6, 0);
+    grad.addColorStop(0, shadeHex(col, -0.32));
+    grad.addColorStop(0.55, col);
+    grad.addColorStop(1, shadeHex(col, 0.2));
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(x - wd * 0.95, baseY);
+    g.quadraticCurveTo(x - wd * 0.5, baseY - wd * 0.9, x - wd * 0.45, baseY - wd * 2.2);
+    g.lineTo(x + lean - wd * 0.36, topY);
+    g.lineTo(x + lean + wd * 0.36, topY);
+    g.lineTo(x + wd * 0.45, baseY - wd * 2.2);
+    g.quadraticCurveTo(x + wd * 0.5, baseY - wd * 0.9, x + wd, baseY);
+    g.closePath();
+    g.fill();
+
+    g.strokeStyle = shadeHex(col, -0.45);
+    g.globalAlpha = 0.5;
+    g.lineWidth = Math.max(0.6, wd * 0.07);
+    g.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const y0 = topY + span * (0.12 + hash(seed + k + 9) * 0.7);
+      const y1 = Math.min(baseY - 2, y0 + span * 0.14);
+      const fx = (hash(seed + k + 1) - 0.5) * wd * 0.55;
+      g.moveTo(x + fx + lean * (baseY - y0) / span, y0);
+      g.lineTo(x + fx + lean * (baseY - y1) / span, y1);
+    }
+    g.stroke();
+    g.globalAlpha = 1;
+  }
+
+  // Everything in the forest that does not move: sky, ridges, trees, floor, and the pool
+  function paintBackdrop(g) {
+    // Hazy morning sky
+    const sky = g.createLinearGradient(0, 0, 0, h * 0.62);
+    sky.addColorStop(0, '#a7c3b3');
+    sky.addColorStop(0.55, '#cfd9b6');
+    sky.addColorStop(1, '#9fb78f');
+    g.fillStyle = sky;
+    g.fillRect(0, 0, w, h);
 
     // Soft morning light
     const sunX = w * 0.76, sunY = h * 0.17;
-    const glow = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, h * 0.5);
-    glow.addColorStop(0, '#f8ecc0aa');
-    glow.addColorStop(1, '#f6e9b800');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, w, h);
+    const glow = g.createRadialGradient(sunX, sunY, 4, sunX, sunY, h * 0.55);
+    glow.addColorStop(0, 'rgba(252,240,196,0.75)');
+    glow.addColorStop(0.35, 'rgba(248,234,184,0.28)');
+    glow.addColorStop(1, 'rgba(246,233,184,0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, w, h);
 
-    // Distant Western Ghats ridges
-    ctx.fillStyle = '#7e9975';
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.48);
-    for (let x = 0; x <= w; x += w / 8) {
-      ctx.quadraticCurveTo(x + w / 16, h * 0.31 + Math.sin(x * 0.013) * 12, x + w / 8, h * 0.46);
-    }
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.fill();
+    // Distant Western Ghats ridges, paler with distance
+    [[0.33, '#a9bfa6', 1.1, 0.045], [0.38, '#93ae90', 1.9, 0.035], [0.43, '#7d9c7a', 3.1, 0.028]].forEach(([base, col, f, amp], k) => {
+      g.fillStyle = col;
+      g.beginPath();
+      g.moveTo(0, h);
+      for (let i = 0; i <= 48; i++) {
+        const u = i / 48;
+        g.lineTo(u * w, h * (base + amp * Math.sin(u * 6.3 * f + k * 2.1) + 0.012 * Math.sin(u * 23 * f + k * 5)));
+      }
+      g.lineTo(w, h);
+      g.fill();
+    });
 
-    // Far tree canopy silhouettes
-    for (let i = 0; i < 15; i++) {
-      let x = (i / 14) * w + Math.sin(i * 8) * 12;
-      let y = h * (0.32 + (i % 3) * 0.035);
-      let r = h * (0.09 + (i % 4) * 0.014);
-      ctx.fillStyle = ['#547354', '#607e5e', '#496b52'][i % 3];
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.arc(x - r * 0.55, y + r * 0.35, r * 0.72, 0, Math.PI * 2);
-      ctx.arc(x + r * 0.6, y + r * 0.3, r * 0.8, 0, Math.PI * 2);
-      ctx.fill();
+    // Far canopy
+    const farCols = ['#6f8f6b', '#648662', '#5a7c5d'];
+    for (let i = 0; i < 17; i++) {
+      const x = (i / 16) * w + (hash(i) - 0.5) * w * 0.04;
+      crown(g, x, h * (0.39 + hash(i + 30) * 0.06), h * (0.085 + hash(i + 60) * 0.04), farCols[i % 3], i * 13);
     }
 
-    // Midground tree trunks
-    ctx.fillStyle = '#3f533e';
+    // Morning haze hanging between the far canopy and the nearer trees
+    const haze = g.createLinearGradient(0, h * 0.36, 0, h * 0.62);
+    haze.addColorStop(0, 'rgba(214,224,196,0)');
+    haze.addColorStop(0.55, 'rgba(214,224,196,0.36)');
+    haze.addColorStop(1, 'rgba(214,224,196,0)');
+    g.fillStyle = haze;
+    g.fillRect(0, h * 0.36, w, h * 0.26);
+
+    // Forest floor, sunlit at the back and shaded toward the window
+    const floor = g.createLinearGradient(0, h * 0.56, 0, h);
+    floor.addColorStop(0, '#7c9860');
+    floor.addColorStop(0.25, '#5f7f4f');
+    floor.addColorStop(0.6, '#456643');
+    floor.addColorStop(1, '#2f4d36');
+    g.fillStyle = floor;
+    g.beginPath();
+    g.moveTo(0, h * 0.63);
+    g.quadraticCurveTo(w * 0.5, h * 0.55, w, h * 0.65);
+    g.lineTo(w, h);
+    g.lineTo(0, h);
+    g.fill();
+
+    // Midground trees standing at the back of the clearing
+    const trees = [];
     for (let i = 0; i < 6; i++) {
-      let tx = w * (0.1 + i * 0.17) + Math.sin(i * 3) * 16;
-      ctx.fillRect(tx, h * 0.36, 7 + (i % 2) * 3, h * 0.3);
+      trees.push({
+        x: w * (0.07 + i * 0.172) + (hash(i + 90) - 0.5) * w * 0.06,
+        wd: Math.max(6, h * (0.02 + hash(i + 100) * 0.016)),
+        top: h * (0.2 + hash(i + 110) * 0.07)
+      });
+    }
+    trunk(g, w * 0.012, h * 0.65, -10, Math.max(12, h * 0.05), '#343b2c', 51);
+    trunk(g, w * 0.99, h * 0.665, -10, Math.max(12, h * 0.045), '#3a3a2b', 67);
+    trees.forEach((tr, i) => trunk(g, tr.x, groundTop(tr.x) + h * 0.025, tr.top, tr.wd, i % 2 ? '#4f4636' : '#434c39', i * 7 + 200));
+
+    // Low bushes along the treeline
+    for (let i = 0; i < 18; i++) {
+      const x = (i + 0.5) / 18 * w + (hash(i + 150) - 0.5) * w * 0.04;
+      crown(g, x, groundTop(x) + h * 0.004, h * (0.028 + hash(i + 170) * 0.02), i % 2 ? '#476b48' : '#3f6143', i * 11 + 500);
     }
 
-    // Layered forest floor
-    ctx.fillStyle = '#506d49';
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.63);
-    ctx.quadraticCurveTo(w * 0.5, h * 0.55, w, h * 0.65);
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.fill();
+    // Crowns of the midground trees
+    const midCols = ['#4c6b4d', '#446447', '#557552'];
+    trees.forEach((tr, i) => {
+      crown(g, tr.x + (hash(i + 140) - 0.5) * h * 0.18, tr.top + h * 0.075, h * 0.075, midCols[(i + 1) % 3], i * 19 + 350);
+      crown(g, tr.x, tr.top + h * 0.02, h * (0.095 + hash(i + 130) * 0.03), midCols[i % 3], i * 17 + 300);
+    });
 
-    ctx.fillStyle = '#3e5e40';
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.78);
-    ctx.quadraticCurveTo(w * 0.5, h * 0.67, w, h * 0.77);
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.fill();
+    // Nearer rise of the floor
+    const near = g.createLinearGradient(0, h * 0.7, 0, h);
+    near.addColorStop(0, '#42633f');
+    near.addColorStop(1, '#2a4631');
+    g.fillStyle = near;
+    g.beginPath();
+    g.moveTo(0, h * 0.78);
+    g.quadraticCurveTo(w * 0.5, h * 0.67, w, h * 0.77);
+    g.lineTo(w, h);
+    g.lineTo(0, h);
+    g.fill();
 
-    // Small forest pool where animals come to drink
+    // Dappled sunlight on the ground
+    g.fillStyle = 'rgba(232,226,150,0.1)';
+    g.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const dx = hash(i + 400) * w, dy = h * (0.63 + hash(i + 420) * 0.2);
+      const drx = w * (0.03 + hash(i + 440) * 0.04);
+      g.moveTo(dx + drx, dy);
+      g.ellipse(dx, dy, drx, h * (0.008 + hash(i + 460) * 0.01), 0, 0, TAU);
+    }
+    g.fill();
+
+    // Leaf litter
+    g.globalAlpha = 0.45;
+    const litter = ['#7a6a3f', '#8d7b4a', '#5d5233', '#9aa35e'];
+    for (let i = 0; i < 90; i++) {
+      g.fillStyle = litter[i % 4];
+      g.fillRect(hash(i + 600) * w, h * (0.62 + hash(i + 700) * 0.24), 2.2, 1.1);
+    }
+    g.globalAlpha = 1;
+
+    // Grass tufts across the clearing
+    for (let pass = 0; pass < 2; pass++) {
+      g.strokeStyle = pass ? '#86a162' : '#4f7447';
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let i = pass; i < 64; i += 2) {
+        const tx = hash(i + 800) * w, ty = h * (0.615 + hash(i + 840) * 0.22);
+        const len = h * (0.008 + hash(i + 880) * 0.012);
+        for (let b = -1; b <= 1; b++) {
+          g.moveTo(tx + b * 1.6, ty);
+          g.lineTo(tx + b * 3.4, ty - len * (b ? 0.8 : 1));
+        }
+      }
+      g.stroke();
+    }
+
+    // A few mossy stones
+    [[0.3, 0.668, 1], [0.86, 0.705, 1.3], [0.11, 0.745, 0.9]].forEach(([u, v, s]) => {
+      const rx = h * 0.022 * s, x = u * w, y = v * h;
+      g.fillStyle = '#59604f';
+      g.beginPath();
+      g.ellipse(x, y, rx, rx * 0.55, 0, Math.PI, TAU);
+      g.fill();
+      g.fillStyle = '#7f8873';
+      g.beginPath();
+      g.ellipse(x + rx * 0.2, y - rx * 0.2, rx * 0.55, rx * 0.28, -0.2, Math.PI, TAU);
+      g.fill();
+      g.fillStyle = 'rgba(78,112,60,0.7)';
+      g.beginPath();
+      g.ellipse(x - rx * 0.35, y - rx * 0.1, rx * 0.4, rx * 0.2, 0.2, Math.PI, TAU);
+      g.fill();
+    });
+
+    // Small forest pool where animals come to drink: muddy bank, shaded far side, bright near side
     const p = pond();
-    ctx.fillStyle = '#34503a';
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y + 1.5, p.rx + 5, p.ry + 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#8fb3ad';
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#cfe2d588';
-    ctx.beginPath();
-    ctx.ellipse(p.x - p.rx * 0.25 + Math.sin(t * 0.7) * 2, p.y - p.ry * 0.2, p.rx * 0.45, p.ry * 0.3, 0, 0, Math.PI * 2);
-    ctx.fill();
+    g.fillStyle = '#4d4b36';
+    g.beginPath();
+    g.ellipse(p.x, p.y + 1.5, p.rx + 7, p.ry + 4, 0, 0, TAU);
+    g.fill();
+    g.fillStyle = '#2f4a37';
+    g.beginPath();
+    g.ellipse(p.x, p.y + 1, p.rx + 3, p.ry + 2, 0, 0, TAU);
+    g.fill();
+    const water = g.createLinearGradient(0, p.y - p.ry, 0, p.y + p.ry);
+    water.addColorStop(0, '#5f8580');
+    water.addColorStop(0.5, '#93b8b0');
+    water.addColorStop(1, '#c4d9cc');
+    g.fillStyle = water;
+    g.beginPath();
+    g.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU);
+    g.fill();
 
-    // Sunlight shafts
-    for (let i = 0; i < 5; i++) {
-      let x = w * (0.12 + i * 0.19);
-      ctx.fillStyle = '#e5d99a14';
+    // Reeds on the bank
+    g.strokeStyle = '#5c7a45';
+    g.lineWidth = 1.2;
+    g.beginPath();
+    for (let k = 0; k < 9; k++) {
+      const rx0 = p.x - p.rx - 3 + k * 2.2;
+      g.moveTo(rx0, p.y + 3);
+      g.quadraticCurveTo(rx0 - 1, p.y - 6 - hash(k) * 8, rx0 + (hash(k + 5) - 0.5) * 6, p.y - 10 - hash(k) * 10);
+    }
+    g.stroke();
+  }
+
+  let bgCache = null;
+  function rebuildBackdrop() {
+    if (!bgCache) bgCache = document.createElement('canvas');
+    bgCache.width = canvas.width;
+    bgCache.height = canvas.height;
+    if (!bgCache.width || !bgCache.height) return;
+    const g = bgCache.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintBackdrop(g);
+  }
+
+  function drawBackground(t, throughLens) {
+    // The still parts of the forest are painted once per resize.
+    // Through the binoculars they are redrawn live so they stay sharp when magnified.
+    if (!throughLens && bgCache && bgCache.width > 0 && bgCache.height > 0) ctx.drawImage(bgCache, 0, 0, w, h);
+    else paintBackdrop(ctx);
+
+    // Light moving on the pool
+    const p = pond();
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(236,244,232,0.5)';
+    for (let k = 0; k < 3; k++) {
       ctx.beginPath();
-      ctx.moveTo(x, h * 0.32);
-      ctx.lineTo(x + w * 0.045, h * 0.32);
-      ctx.lineTo(x + w * 0.14, h);
-      ctx.lineTo(x + w * 0.07, h);
+      ctx.ellipse(p.x + Math.sin(t * 0.5 + k * 2.1) * p.rx * 0.5, p.y + (k - 1) * p.ry * 0.45, p.rx * (0.28 - k * 0.05), p.ry * 0.12, 0, 0, TAU);
       ctx.fill();
     }
+    ctx.restore();
+
+    // Sunlight shafts slanting down from the right, fading toward the ground
+    for (let i = 0; i < 5; i++) {
+      const x = w * (0.16 + i * 0.19);
+      const strength = 0.11 + Math.sin(t * 0.25 + i * 1.7) * 0.035;
+      const beam = ctx.createLinearGradient(0, h * 0.18, 0, h * 0.95);
+      beam.addColorStop(0, 'rgba(240,230,170,' + strength.toFixed(3) + ')');
+      beam.addColorStop(1, 'rgba(240,230,170,0)');
+      ctx.fillStyle = beam;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.18);
+      ctx.lineTo(x + w * 0.045, h * 0.18);
+      ctx.lineTo(x - w * 0.03, h);
+      ctx.lineTo(x - w * 0.1, h);
+      ctx.fill();
+    }
+
+    // Drifting motes caught in the light
+    ctx.fillStyle = 'rgba(250,244,205,0.55)';
+    ctx.beginPath();
+    for (let i = 0; i < 9; i++) {
+      const mx = (hash(i + 40) * w + Math.sin(t * 0.3 + i * 2.2) * 26 + w) % Math.max(1, w);
+      const my = h * (0.3 + hash(i + 50) * 0.36) + Math.sin(t * 0.5 + i) * 9;
+      disc(ctx, mx, my, 0.9 + hash(i + 60) * 0.7);
+    }
+    ctx.fill();
+  }
+
+  // A broad leaf from its base to its tip, with a pale midrib
+  function drawLeaf(bx, by, ang, len, col) {
+    const tx = bx + Math.sin(ang) * len, ty = by - Math.cos(ang) * len;
+    const nx = Math.cos(ang) * len * 0.22, ny = Math.sin(ang) * len * 0.22;
+    const mx = (bx + tx) / 2, my = (by + ty) / 2;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(mx + nx, my + ny, tx, ty);
+    ctx.quadraticCurveTo(mx - nx, my - ny, bx, by);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,190,130,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
   }
 
   function drawForegroundFoliage(t) {
-    // Foreground shrubs
-    for (let i = 0; i < 26; i++) {
-      let x = (i / 25) * w + Math.sin(i * 12) * 14;
-      let y = h * (0.83 + (i % 4) * 0.035);
-      let r = h * (0.045 + (i % 3) * 0.012);
-      ctx.fillStyle = ['#294d37', '#34583b', '#3b6541'][i % 3];
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.arc(x - r * 0.6, y + r * 0.3, r * 0.75, 0, Math.PI * 2);
-      ctx.arc(x + r * 0.65, y + r * 0.28, r * 0.7, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // Hanging canopy leaves
-    for (let i = 0; i < 13; i++) {
-      let x = i * w / 12, y = 0;
-      ctx.strokeStyle = '#294a36';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(x + Math.sin(t * 0.4 + i) * 18, h * 0.06, x + Math.sin(t * 0.4 + i) * 27, h * 0.16);
-      ctx.stroke();
-      for (let j = 0; j < 3; j++) {
-        let lx = x + Math.sin(t * 0.4 + i) * 18 + j * 6;
-        let ly = h * (0.045 + j * 0.035);
-        ctx.fillStyle = '#355d3d';
+    // Shade pooling at the very front
+    const shade = ctx.createLinearGradient(0, h * 0.8, 0, h);
+    shade.addColorStop(0, 'rgba(22,42,30,0)');
+    shade.addColorStop(1, 'rgba(18,36,26,0.7)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, h * 0.8, w, h * 0.2);
+
+    // Foreground shrubs, back rows first: shaded base, leafy mass, sunlit leaves
+    for (let row = 0; row < 4; row++) {
+      for (let i = row; i < 26; i += 4) {
+        const x = (i / 25) * w + Math.sin(i * 12) * 14 + Math.sin(t * 0.7 + i * 1.3) * 1.2;
+        const y = h * (0.83 + row * 0.035);
+        const r = h * (0.045 + (i % 3) * 0.012);
+        const col = ['#294d37', '#34583b', '#3b6541'][i % 3];
+        ctx.fillStyle = shadeHex(col, -0.28);
         ctx.beginPath();
-        ctx.ellipse(lx, ly, 10, 24, 0.5, 0, Math.PI * 2);
+        disc(ctx, x, y + r * 0.15, r);
+        disc(ctx, x - r * 0.6, y + r * 0.4, r * 0.78);
+        disc(ctx, x + r * 0.65, y + r * 0.38, r * 0.74);
+        ctx.fill();
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        disc(ctx, x + r * 0.08, y - r * 0.1, r * 0.8);
+        disc(ctx, x - r * 0.55, y + r * 0.12, r * 0.56);
+        disc(ctx, x + r * 0.62, y + r * 0.1, r * 0.53);
+        ctx.fill();
+        ctx.fillStyle = shadeHex(col, 0.2);
+        ctx.beginPath();
+        for (let k = 0; k < 6; k++) {
+          ell(x + (hash(i * 9 + k) - 0.4) * r * 1.5, y - r * 0.15 - hash(i * 9 + k + 3) * r * 0.6, r * 0.17, r * 0.08, -0.5 + hash(i + k) * 1.2);
+        }
         ctx.fill();
       }
     }
-    // Grass blades
-    for (let i = 0; i < 55; i++) {
-      let x = (i * 97 % Math.max(1, w));
-      let y = h * (0.84 + (i * 13 % 14) / 100);
-      ctx.strokeStyle = '#77905a';
-      ctx.lineWidth = 1.1;
+
+    // Fern-like undergrowth between the shrubs
+    for (let c = 0; c < 7; c++) {
+      const bx = (c + 0.5) / 7 * w + (hash(c + 20) - 0.5) * w * 0.07;
+      const by = h * (0.94 + hash(c + 25) * 0.05);
+      for (let f = 0; f < 5; f++) {
+        const ang = (f - 2) * 0.5 + Math.sin(t * 0.6 + c + f) * 0.04;
+        drawLeaf(bx, by, ang, h * (0.07 + hash(c * 5 + f) * 0.04), f % 2 ? '#3d6b43' : '#2f5a3b');
+      }
+    }
+
+    // Broad leaves framing the lower corners
+    const lean = Math.sin(t * 0.5) * 0.03;
+    drawLeaf(0, h * 1.01, 0.9 + lean, h * 0.2, '#213f2d');
+    drawLeaf(w * 0.02, h * 1.02, 0.5 + lean, h * 0.26, '#1f3d2b');
+    drawLeaf(w * 0.05, h * 1.02, 0.14 - lean, h * 0.2, '#28492f');
+    drawLeaf(w, h * 1.01, -0.9 - lean, h * 0.2, '#213f2d');
+    drawLeaf(w * 0.98, h * 1.02, -0.5 - lean, h * 0.26, '#1f3d2b');
+    drawLeaf(w * 0.95, h * 1.02, -0.14 + lean, h * 0.2, '#28492f');
+
+    // Grass blades bending in the breeze
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = pass ? '#8fa765' : '#5f8250';
+      ctx.lineWidth = pass ? 1 : 1.4;
       ctx.beginPath();
-      ctx.moveTo(x, y + 8);
-      ctx.lineTo(x + Math.sin(t + i) * 3, y - 5);
+      for (let i = pass; i < 90; i += 2) {
+        const x = hash(i + 700) * w, y = h * (0.86 + hash(i + 800) * 0.13);
+        const len = h * (0.025 + hash(i + 900) * 0.035);
+        const bend = Math.sin(t * 1.1 + i) * 3 + (hash(i + 950) - 0.5) * 8;
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + bend * 0.3, y - len * 0.6, x + bend, y - len);
+      }
       ctx.stroke();
     }
-  }
 
-  function drawShadow(rx, ry, yOff) {
-    ctx.fillStyle = 'rgba(18, 32, 22, 0.28)';
+    // Overhanging canopy along the top of the view
+    const over = ctx.createLinearGradient(0, 0, 0, h * 0.12);
+    over.addColorStop(0, 'rgba(20,40,28,0.6)');
+    over.addColorStop(1, 'rgba(20,40,28,0)');
+    ctx.fillStyle = over;
+    ctx.fillRect(0, 0, w, h * 0.12);
+    ctx.fillStyle = '#24402e';
     ctx.beginPath();
-    ctx.ellipse(0, yOff, rx, ry, 0, 0, Math.PI * 2);
+    for (let i = 0; i < 15; i++) {
+      disc(ctx, (i / 14) * w + (hash(i + 300) - 0.5) * w * 0.04, -h * 0.02, h * (0.045 + hash(i + 320) * 0.03));
+    }
+    ctx.fill();
+
+    // Hanging vines and their leaves
+    const leaves = [];
+    ctx.strokeStyle = '#27432f';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    for (let i = 0; i < 13; i++) {
+      const x = i * w / 12, s = Math.sin(t * 0.4 + i);
+      const len = h * (0.12 + hash(i + 500) * 0.08);
+      ctx.moveTo(x, 0);
+      ctx.quadraticCurveTo(x + s * 18, len * 0.4, x + s * 27, len);
+      for (let j = 0; j < 4; j++) {
+        const u = (j + 1) / 4.4;
+        leaves.push([x + s * (18 * u + 9 * u * u) + (j % 2 ? 7 : -5), len * u, (j % 2 ? 0.55 : -0.5) + s * 0.25, 8 + hash(i * 5 + j) * 4]);
+      }
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#2f5539';
+    ctx.beginPath();
+    for (const [lx, ly, rot, sz] of leaves) ell(lx, ly, sz * 0.8, sz * 2, rot);
+    ctx.fill();
+    ctx.fillStyle = '#3b6843';
+    ctx.beginPath();
+    for (const [lx, ly, rot, sz] of leaves) ell(lx + 1.5, ly - 1.5, sz * 0.36, sz * 1.5, rot);
     ctx.fill();
   }
 
+  // ---- Shared animal drawing helpers ----
+
+  // Adds an ellipse as its own subpath so several can be filled together
+  function ell(x, y, rx, ry, rot) {
+    const r = rot || 0;
+    ctx.moveTo(x + rx * Math.cos(r), y + rx * Math.sin(r));
+    ctx.ellipse(x, y, rx, ry, r, 0, TAU);
+  }
+
+  // Coat colour with light on the back and shade under the belly
+  function coat(color, y0, y1, hi, lo) {
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, shadeHex(color, hi === undefined ? 0.16 : hi));
+    g.addColorStop(0.5, color);
+    g.addColorStop(1, shadeHex(color, -(lo === undefined ? 0.3 : lo)));
+    return g;
+  }
+
+  // Small highlight that makes an eye look alive
+  function glint(x, y, r) {
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawShadow(rx, ry, yOff) {
+    ctx.save();
+    ctx.translate(0, yOff);
+    ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, rx * 0.2, 0, 0, rx * 1.15);
+    g.addColorStop(0, 'rgba(14,26,18,0.42)');
+    g.addColorStop(1, 'rgba(14,26,18,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, rx * 1.15, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Jointed legs: far-side pair drawn darker first, thicker upper limb, slimmer shank, dark hoof or foot
   function drawLegs(positions, topY, bottomY, t, phase, color, width, extraFn) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
+    const four = positions.length === 4;
+    const far = shadeHex(color, -0.3), foot = shadeHex(color, -0.55);
+    const order = four ? [1, 2, 0, 3] : positions.map((_, i) => i);
+    const midY = (topY + bottomY) * 0.5;
     ctx.lineCap = 'round';
-    positions.forEach((lx, idx) => {
+    ctx.lineJoin = 'round';
+    for (const idx of order) {
+      const lx = positions[idx];
       const swing = Math.sin(t * 6.5 + phase + idx * 1.6) * 4.5 * gaitAmp;
+      ctx.strokeStyle = four && (idx === 1 || idx === 2) ? far : color;
+      ctx.lineWidth = width * 1.3;
       ctx.beginPath();
       ctx.moveTo(lx, topY);
-      ctx.lineTo(lx + swing * 0.4, (topY + bottomY) * 0.5);
+      ctx.lineTo(lx + swing * 0.4, midY);
+      ctx.stroke();
+      ctx.lineWidth = width * 0.85;
+      ctx.beginPath();
+      ctx.moveTo(lx + swing * 0.4, midY);
       ctx.lineTo(lx + swing, bottomY);
       ctx.stroke();
       if (extraFn) extraFn(lx, swing, topY, bottomY);
-    });
+      ctx.strokeStyle = foot;
+      ctx.lineWidth = width * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(lx + swing, bottomY - 1.2);
+      ctx.lineTo(lx + swing + 0.7, bottomY);
+      ctx.stroke();
+    }
   }
 
   function drawDeer(a, t) {
@@ -491,11 +898,20 @@
     ctx.ellipse(-26, -3, 5, 3, -0.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Body & torso contour
-    ctx.fillStyle = c;
+    // Body & torso contour: lit back, shaded underside, deep chest and rounded haunch
+    ctx.fillStyle = coat(c, -13, 13);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 26, 12.5, -0.03, 0, Math.PI * 2);
+    ell(0, 0, 26, 12.5, -0.03);
+    ell(15, 1.5, 10, 11.5, 0.1);
+    ell(-17, -0.5, 10.5, 12, -0.1);
     ctx.fill();
+    // Darker line along the spine
+    ctx.strokeStyle = shadeHex(c, -0.32);
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-24, -9);
+    ctx.quadraticCurveTo(0, -13.5, 17, -9);
+    ctx.stroke();
 
     // Pale belly on spotted deer
     if (!isSambar) {
@@ -520,17 +936,29 @@
     ctx.ellipse(28, -19 + graze, 8.5, 5.2, -0.15, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ear
+    // Ear with a pale inner side
     ctx.beginPath();
     ctx.ellipse(23, -25 + graze, 3, 6, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isSambar ? '#a98c72' : '#f0d9bb';
+    ctx.beginPath();
+    ctx.ellipse(23.3, -24.6 + graze, 1.4, 3.8, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Paler muzzle and throat
+    ctx.fillStyle = isSambar ? '#8a6a50' : '#ecd9b8';
+    ctx.beginPath();
+    ell(33, -17.5 + graze, 3.6, 2.4, 0);
+    ell(24, -11 + graze * 0.6, 2.4, 4.6, 0.5);
     ctx.fill();
 
     // Eye & nose
     ctx.fillStyle = '#1f1916';
     ctx.beginPath();
-    ctx.arc(30, -20 + graze, 1.3, 0, Math.PI * 2);
-    ctx.arc(35.5, -19 + graze, 1.5, 0, Math.PI * 2);
+    ell(30, -20 + graze, 1.5, 1.5, 0);
+    ell(35.5, -19 + graze, 1.5, 1.5, 0);
     ctx.fill();
+    glint(30.4, -20.5 + graze, 0.5);
 
     // Antlers (some individuals in herd have larger antlers)
     if (a.hasAntlers !== false) {
@@ -568,8 +996,8 @@
     ctx.ellipse(-2, -12, 18, 4.5, 0.08, Math.PI, Math.PI * 2);
     ctx.fill();
 
-    // Heavy body
-    ctx.fillStyle = a.color;
+    // Heavy body, lit along the back
+    ctx.fillStyle = coat(a.color, -14, 14);
     ctx.beginPath();
     ctx.ellipse(0, 0, 25, 14, 0.05, 0, Math.PI * 2);
     ctx.fill();
@@ -607,6 +1035,22 @@
     ctx.beginPath();
     ctx.arc(23, -3, 1.3, 0, Math.PI * 2);
     ctx.fill();
+    glint(23.4, -3.4, 0.45);
+
+    // Snout disc and coarse bristles standing along the back
+    ctx.fillStyle = '#6b594b';
+    ctx.beginPath();
+    ctx.ellipse(33, 4, 1.8, 3, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#1f1914';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 9; i++) {
+      const bx = -18 + i * 4, lift = Math.abs(i - 4) * 0.55;
+      ctx.moveTo(bx, -13 + lift);
+      ctx.lineTo(bx - 2, -17.5 + lift);
+    }
+    ctx.stroke();
   }
 
   function drawGaur(a, t) {
@@ -626,13 +1070,19 @@
     });
 
     // Massive body & muscular shoulder hump
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -22, 17, 0.2);
     ctx.beginPath();
     ctx.ellipse(0, 0, 32, 17, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
     ctx.ellipse(7, -13, isBull ? 17 : 14, isBull ? 9 : 6.5, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sheen over the shoulder muscle
+    ctx.fillStyle = 'rgba(255,240,215,0.045)';
+    ctx.beginPath();
+    ctx.ellipse(5, -11, 14, 5, -0.12, 0, Math.PI * 2);
     ctx.fill();
 
     // Dewlap under throat (prominent on bull)
@@ -670,11 +1120,20 @@
     ctx.lineTo(31, -28);
     ctx.stroke();
 
-    // Eye
+    // Ear, pale muzzle, and eye
+    ctx.fillStyle = shadeHex(a.color, 0.14);
+    ctx.beginPath();
+    ctx.ellipse(20.5, -7.5, 5, 2.5, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#8f8676';
+    ctx.beginPath();
+    ctx.ellipse(36.5, -1.5, 2.8, 3.3, 0.25, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#14100e';
     ctx.beginPath();
     ctx.arc(31, -6, 1.4, 0, Math.PI * 2);
     ctx.fill();
+    glint(31.4, -6.4, 0.45);
   }
 
   function drawPeacock(a, t) {
@@ -729,7 +1188,7 @@
     drawLegs([-4, 4], 7, 21, t, a.phase, '#8f7b5e', 2.2);
 
     // Body & folded wing
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -8, 10, 0.2);
     ctx.beginPath();
     ctx.ellipse(0, 1, 15, 9, -0.1, 0, Math.PI * 2);
     ctx.fill();
@@ -738,6 +1197,16 @@
     ctx.beginPath();
     ctx.ellipse(-2, 1, 10, 5.5, -0.05, 0, Math.PI * 2);
     ctx.fill();
+
+    // Scalloped wing feathers
+    ctx.strokeStyle = 'rgba(18,60,48,0.55)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    for (const [fx, fy] of [[-8, 0], [-4, -1], [0, 0], [4, 1], [-6, 3], [-2, 3.5], [2, 3.5]]) {
+      ctx.moveTo(fx + 2, fy);
+      ctx.arc(fx, fy, 2, 0, Math.PI);
+    }
+    ctx.stroke();
 
     // Iridescent neck & head
     ctx.fillStyle = '#155b75';
@@ -774,9 +1243,22 @@
     ctx.lineTo(20, -16);
     ctx.fill();
 
+    // Sheen down the neck
+    ctx.strokeStyle = 'rgba(120,205,225,0.4)';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(15.5, -14);
+    ctx.quadraticCurveTo(16.5, -6, 12, 1);
+    ctx.stroke();
+
+    // White face patch with a dark eye
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(17, -18.5, 1.1, 0, Math.PI * 2);
+    ctx.ellipse(17, -18.5, 1.9, 1.3, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#16120f';
+    ctx.beginPath();
+    ctx.arc(17.2, -18.5, 0.8, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -790,22 +1272,39 @@
 
     // Pillar legs
     const legSwing = fighting ? 1.5 : 3.5 * gaitAmp;
-    ctx.strokeStyle = '#555a53';
     ctx.lineWidth = 7.5;
     ctx.lineCap = 'round';
-    [-22, -10, 11, 20].forEach((lx, i) => {
-      const sw = Math.sin(t * 4.5 + a.phase + i * 1.5) * legSwing;
+    const legNear = shadeHex(a.color, -0.16), legFar = shadeHex(a.color, -0.34);
+    [-10, 11, -22, 20].forEach((lx, i) => {
+      const sw = Math.sin(t * 4.5 + a.phase + lx * 0.13) * legSwing;
+      ctx.strokeStyle = i < 2 ? legFar : legNear;
       ctx.beginPath();
       ctx.moveTo(lx, 12);
       ctx.lineTo(lx + sw, 35);
       ctx.stroke();
+      // Pale toenails
+      ctx.fillStyle = 'rgba(214,205,184,0.75)';
+      ctx.beginPath();
+      ctx.ellipse(lx + sw + 2.2, 36.2, 1.1, 1.3, 0, 0, Math.PI * 2);
+      ctx.ellipse(lx + sw - 0.4, 36.6, 1.1, 1.3, 0, 0, Math.PI * 2);
+      ctx.fill();
     });
 
     // Domed back & body
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -24, 23, 0.18);
     ctx.beginPath();
     ctx.ellipse(0, 0, 35, 23, -0.04, 0, Math.PI * 2);
     ctx.fill();
+
+    // Loose skin folds
+    ctx.strokeStyle = 'rgba(40,44,40,0.22)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const [x0, y0, cx, cy, x1, y1] of [[-20, -14, -24, 0, -19, 14], [-6, -19, -9, 0, -5, 19], [9, -18, 7, -2, 10, 17], [-27, 2, -22, 6, -25, 13]]) {
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(cx, cy, x1, y1);
+    }
+    ctx.stroke();
 
     // Tail
     ctx.strokeStyle = '#4e524b';
@@ -821,17 +1320,27 @@
     ctx.translate(27, -11);
     ctx.rotate(headTilt);
 
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -20, 16, 0.18);
     ctx.beginPath();
     ctx.arc(0, 0, 15.5, 0, Math.PI * 2);
     ctx.arc(-3, -10, 9.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Large ear
-    ctx.fillStyle = '#565b54';
+    // Ear (the smaller Asian shape) with a fold and a paler, mottled lower edge
+    ctx.fillStyle = shadeHex(a.color, -0.2);
     ctx.beginPath();
-    ctx.ellipse(-11, -1, 11, 15, -0.25, 0, Math.PI * 2);
+    ctx.ellipse(-10, 0, 9, 12.5, -0.25, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = 'rgba(196,150,140,0.32)';
+    ctx.beginPath();
+    ctx.ellipse(-11, 8, 5.5, 4, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(30,33,30,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-6, -10);
+    ctx.quadraticCurveTo(-14, -2, -9, 10);
+    ctx.stroke();
 
     // Trunk
     const trunkWave = fighting ? -12 + Math.sin(t * 7 + a.phase) * 5 : Math.sin(t * 2.2 + a.phase) * 4;
@@ -866,6 +1375,7 @@
     ctx.beginPath();
     ctx.arc(5, -3, 1.6, 0, Math.PI * 2);
     ctx.fill();
+    glint(5.5, -3.5, 0.5);
 
     ctx.restore();
     ctx.restore();
@@ -947,7 +1457,7 @@
     // Anatomical big-cat torso (clipped for underbelly & organic stripes)
     ctx.save();
     traceBigCatBody(ctx, true);
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -17, 12, 0.14, 0.22);
     ctx.fill();
     ctx.clip();
 
@@ -1072,6 +1582,20 @@
     ctx.beginPath();
     ctx.arc(5.1, -3.5, 1.25, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#18120f';
+    ctx.beginPath();
+    ctx.arc(5.3, -3.5, 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    glint(5.6, -3.9, 0.32);
+
+    // Whiskers
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(11.5, 1.6); ctx.lineTo(17.5, 1.2);
+    ctx.moveTo(11.5, 2.2); ctx.lineTo(17.2, 3.6);
+    ctx.moveTo(11, 2.8); ctx.lineTo(16, 5.6);
+    ctx.stroke();
 
     // Pinkish-dark tiger nose leather
     ctx.fillStyle = '#2b1d19';
@@ -1118,7 +1642,7 @@
     // Sleek, low-slung panthera body contour
     ctx.save();
     traceBigCatBody(ctx, false);
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -17, 12, 0.14, 0.22);
     ctx.fill();
     ctx.clip();
 
@@ -1213,6 +1737,20 @@
     ctx.beginPath();
     ctx.arc(5.1, -3.2, 1.3, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#0e0d0c';
+    ctx.beginPath();
+    ctx.arc(5.3, -3.2, 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    glint(5.6, -3.6, 0.32);
+
+    // Whiskers
+    ctx.strokeStyle = isBlack ? 'rgba(200,205,215,0.45)' : 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(11, 1.4); ctx.lineTo(17, 1);
+    ctx.moveTo(11, 2); ctx.lineTo(16.6, 3.4);
+    ctx.moveTo(10.5, 2.5); ctx.lineTo(15.4, 5.2);
+    ctx.stroke();
 
     // Nose tip
     ctx.fillStyle = '#1c1513';
@@ -1228,13 +1766,34 @@
     drawLegs([-15, -7, 8, 15], 7, 21, t, a.phase, '#1a1716', 5);
 
     // Shaggy coat & rounded back
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -19, 14, 0.2);
     ctx.beginPath();
     ctx.ellipse(0, -1, 25, 15, 0.05, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
     ctx.ellipse(-4, -9, 16, 9, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Long, untidy fur catching the light along the back and hanging under the belly
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 1.1;
+    ctx.strokeStyle = shadeHex(a.color, 0.24);
+    ctx.beginPath();
+    for (let i = 0; i < 14; i++) {
+      const ang = Math.PI * (1.08 + i * 0.062);
+      const fx = -3 + Math.cos(ang) * 21, fy = -6 + Math.sin(ang) * 12;
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx - 2.6, fy - 2.4);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = shadeHex(a.color, -0.4);
+    ctx.beginPath();
+    for (let i = 0; i < 9; i++) {
+      const fx = -18 + i * 4.5, drop = Math.abs(i - 4) * 0.7;
+      ctx.moveTo(fx, 11.5 - drop);
+      ctx.lineTo(fx - 1.5, 15.5 - drop);
+    }
+    ctx.stroke();
 
     // Cream V-shaped chest mark (visible on front shoulder)
     ctx.strokeStyle = '#ead9b7';
@@ -1261,9 +1820,10 @@
 
     ctx.fillStyle = '#171413';
     ctx.beginPath();
-    ctx.arc(34, -2.5, 1.8, 0, Math.PI * 2);
-    ctx.arc(24, -6, 1.3, 0, Math.PI * 2);
+    ell(34, -2.5, 1.8, 1.8, 0);
+    ell(24, -6, 1.3, 1.3, 0);
     ctx.fill();
+    glint(24.4, -6.4, 0.4);
   }
 
   function drawHornbill(a, t) {
@@ -1285,8 +1845,16 @@
       ctx.fillRect(-27, 3, 5, 6);
     }
 
+    // Far wing, seen behind the body
+    ctx.fillStyle = isGreat ? '#121412' : '#585a53';
+    ctx.beginPath();
+    ctx.moveTo(-3, -2);
+    ctx.quadraticCurveTo(7, -15 - flap * 0.85, 16, -6 - flap * 0.5);
+    ctx.quadraticCurveTo(6, 0, -3, -2);
+    ctx.fill();
+
     // Body & neck
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -9, 9, 0.2);
     ctx.beginPath();
     ctx.ellipse(0, 0, 15, 8.5, -0.08, 0, Math.PI * 2);
     ctx.fill();
@@ -1334,6 +1902,7 @@
     ctx.beginPath();
     ctx.arc(13, -6, 1.3, 0, Math.PI * 2);
     ctx.fill();
+    glint(13.4, -6.4, 0.4);
   }
 
   function drawIbis(a, t) {
@@ -1347,8 +1916,16 @@
     ctx.lineTo(-22, 6);
     ctx.stroke();
 
+    // Far wing, seen behind the body
+    ctx.fillStyle = '#211e1d';
+    ctx.beginPath();
+    ctx.moveTo(-2, -1);
+    ctx.quadraticCurveTo(5, -13 - flap * 0.85, 13, -4 - flap * 0.45);
+    ctx.closePath();
+    ctx.fill();
+
     // Glossy dark body & outstretched neck
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -7, 7, 0.24);
     ctx.beginPath();
     ctx.ellipse(0, 0, 13, 6.5, -0.05, 0, Math.PI * 2);
     ctx.fill();
@@ -1399,7 +1976,7 @@
     ctx.stroke();
 
     // Lean body with deep chest and tucked waist
-    ctx.fillStyle = a.color;
+    ctx.fillStyle = coat(a.color, -11, 8, 0.16, 0.26);
     ctx.beginPath();
     ctx.moveTo(18, -8);
     ctx.bezierCurveTo(10, -11, -6, -10, -19, -7);
@@ -1453,9 +2030,279 @@
     // Eye and nose
     ctx.fillStyle = '#17110e';
     ctx.beginPath();
-    ctx.arc(25.5, -14, 1.1, 0, Math.PI * 2);
-    ctx.arc(34, -11.2, 1.2, 0, Math.PI * 2);
+    ell(25.5, -14, 1.1, 1.1, 0);
+    ell(34, -11.2, 1.2, 1.2, 0);
     ctx.fill();
+    glint(25.8, -14.3, 0.35);
+  }
+
+  // ---- Small wildlife, only drawn through the binoculars ----
+
+  function drawRabbit(a, t) {
+    // Indian hare: long black-tipped ears, pale belly, white scut, long hind feet
+    const c = a.color;
+    const hop = a.moving ? Math.abs(Math.sin(t * 7 + a.phase)) : 0;
+    const reach = a.moving ? Math.sin(t * 7 + a.phase) * 2.5 : 0;
+    drawShadow(11, 2.4, 9);
+    ctx.translate(0, -hop * 3.5);
+
+    // Hind leg with its long foot, and the slim foreleg
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = shadeHex(c, -0.25);
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(-6, 4);
+    ctx.lineTo(-8 - reach, 8.2);
+    ctx.lineTo(-3 - reach, 8.8);
+    ctx.stroke();
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(6, 4);
+    ctx.lineTo(7 + reach, 8.8);
+    ctx.stroke();
+
+    // White scut
+    ctx.fillStyle = '#f4ead8';
+    ctx.beginPath();
+    ctx.ellipse(-11.5, -1, 2.4, 2.2, 0, 0, TAU);
+    ctx.fill();
+
+    // Rounded haunch and body
+    ctx.fillStyle = coat(c, -8, 7);
+    ctx.beginPath();
+    ell(-4, 0.5, 7.5, 6.5, 0);
+    ell(3, 0, 8, 5, -0.15);
+    ctx.fill();
+    ctx.fillStyle = '#e9dcc3';
+    ctx.beginPath();
+    ctx.ellipse(1, 4.2, 7, 1.8, 0, 0, Math.PI);
+    ctx.fill();
+
+    // Head, lowered a little while nibbling
+    ctx.save();
+    ctx.translate(10, -5 + (a.headDrop ? 4 : 0));
+    const twitch = Math.sin(t * 2.3 + a.phase) * 0.08;
+    const ear = (bx, ang, len, col, near) => {
+      ctx.save();
+      ctx.translate(bx, -2.5);
+      ctx.rotate(ang);
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.ellipse(0, -len / 2, 1.7, len / 2, 0, 0, TAU);
+      ctx.fill();
+      if (near) {
+        ctx.fillStyle = '#d9a99a';
+        ctx.beginPath();
+        ctx.ellipse(0.1, -len / 2 + 0.6, 0.8, len / 2 - 1.6, 0, 0, TAU);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#2a211b';
+      ctx.beginPath();
+      ctx.ellipse(0, -len + 1.3, 1.25, 1.5, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    };
+    ear(-2.2, -0.42 + twitch, 11, shadeHex(c, -0.2), false);
+    ear(-0.4, -0.16 + twitch, 12, c, true);
+
+    ctx.fillStyle = coat(c, -5, 4);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 4.6, 3.8, 0.15, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#d9c7a6';
+    ctx.beginPath();
+    ctx.ellipse(2.2, 1.4, 2.2, 1.5, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#1a1410';
+    ctx.beginPath();
+    ctx.arc(1.2, -0.9, 1, 0, TAU);
+    ctx.fill();
+    glint(1.5, -1.2, 0.35);
+    ctx.fillStyle = '#5a3f35';
+    ctx.beginPath();
+    ctx.arc(4.5, 0.3, 0.6, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 0.35;
+    ctx.beginPath();
+    ctx.moveTo(4, 1); ctx.lineTo(7.5, 0.4);
+    ctx.moveTo(4, 1.3); ctx.lineTo(7.3, 2.2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawMongoose(a, t) {
+    // Indian grey mongoose: long low grizzled body, pointed snout, thick tapering tail
+    const c = a.color;
+    const sway = Math.sin(t * 3 + a.phase) * 1.5;
+    drawShadow(16, 2.4, 8);
+
+    // Tail carried low with a paler tip
+    ctx.fillStyle = shadeHex(c, -0.12);
+    ctx.beginPath();
+    ctx.moveTo(-11, -2.5);
+    ctx.quadraticCurveTo(-22, -3, -31, 3 + sway);
+    ctx.quadraticCurveTo(-21, 2.5, -11, 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = shadeHex(c, 0.35);
+    ctx.beginPath();
+    ctx.ellipse(-29.5, 2.8 + sway * 0.95, 1.8, 0.8, -0.3, 0, TAU);
+    ctx.fill();
+
+    // Short quick legs
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2.1;
+    [-6, 7, -9, 10].forEach((lx, i) => {
+      const sw = Math.sin(t * 9 + a.phase + i * 1.6) * 2.6 * gaitAmp;
+      ctx.strokeStyle = shadeHex(c, i < 2 ? -0.5 : -0.35);
+      ctx.beginPath();
+      ctx.moveTo(lx, 3);
+      ctx.lineTo(lx + sw, 8);
+      ctx.stroke();
+    });
+
+    // Long body with a fuller rump
+    ctx.fillStyle = coat(c, -6, 5.5);
+    ctx.beginPath();
+    ell(0, 0, 13, 5, -0.04);
+    ell(-7, 0.3, 6, 5.4, 0);
+    ctx.fill();
+
+    // Grizzled, salt-and-pepper fur
+    ctx.strokeStyle = 'rgba(240,235,220,0.3)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const gx = -11 + i * 2, gy = -2.5 + (i % 3) * 1.6;
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx - 1.4, gy + 0.5);
+    }
+    ctx.stroke();
+
+    // Neck and pointed head
+    ctx.save();
+    ctx.translate(13, -2 + (a.headDrop ? 5 : 0));
+    ctx.fillStyle = coat(c, -5, 4);
+    ctx.beginPath();
+    ctx.moveTo(-4, -3);
+    ctx.quadraticCurveTo(1, -4.6, 4, -2.6);
+    ctx.lineTo(9.5, 0.6);
+    ctx.quadraticCurveTo(8, 2.4, 3, 2.6);
+    ctx.quadraticCurveTo(-2, 3.4, -4, 2.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = shadeHex(c, -0.3);
+    ctx.beginPath();
+    ctx.ellipse(-0.5, -3.2, 1.5, 1.1, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#2a1710';
+    ctx.beginPath();
+    ctx.arc(3.2, -1.2, 0.8, 0, TAU);
+    ctx.fill();
+    glint(3.45, -1.45, 0.28);
+    ctx.fillStyle = '#3b2a25';
+    ctx.beginPath();
+    ctx.arc(9.3, 0.6, 0.7, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSmallBird(a, t) {
+    // Jungle babbler (grey-brown, pale eye, yellowish bill) or Indian pitta (green back, buff belly, bold eye stripe)
+    const pitta = a.sub === 'pitta';
+    const hop = a.moving ? Math.abs(Math.sin(t * 9 + a.phase)) * 2.6 : 0;
+    const peck = a.headDrop ? (Math.sin(t * 6 + a.phase) > 0 ? 3 : 0.8) : 0;
+    const flick = Math.sin(t * 4 + a.phase) * 0.8;
+    const body = a.color;
+    drawShadow(6, 1.4, 6.5);
+    ctx.translate(0, -hop);
+
+    // Thin legs and toes
+    ctx.strokeStyle = pitta ? '#c9a08e' : '#b9a36a';
+    ctx.lineWidth = 0.8;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-0.8, 3); ctx.lineTo(-1.2, 6.4); ctx.lineTo(0.4, 6.4);
+    ctx.moveTo(1.2, 3); ctx.lineTo(1.4, 6.4); ctx.lineTo(3, 6.4);
+    ctx.stroke();
+
+    // Tail: long and loose on the babbler, a short blue stub on the pitta
+    ctx.fillStyle = pitta ? '#2c5f8a' : '#6b6054';
+    ctx.beginPath();
+    ctx.moveTo(-4, -0.8);
+    ctx.lineTo(pitta ? -7.5 : -11.5, (pitta ? 1.4 : 2) + flick);
+    ctx.lineTo(-4, 2.2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Body, underparts, and folded wing
+    ctx.fillStyle = coat(body, -4.5, 4.5);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 5.6, 4, -0.2, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = pitta ? '#e0b673' : '#b7a78d';
+    ctx.beginPath();
+    ctx.ellipse(0.8, 1.5, 4.3, 2.3, -0.15, 0, Math.PI);
+    ctx.fill();
+    ctx.fillStyle = pitta ? '#3f7a45' : '#73685a';
+    ctx.beginPath();
+    ctx.ellipse(-1.2, -0.4, 3.8, 2.3, 0.15, 0, TAU);
+    ctx.fill();
+    if (pitta) {
+      ctx.fillStyle = '#3aa0c8';
+      ctx.beginPath();
+      ctx.ellipse(0.4, -1.2, 1.4, 0.9, 0.2, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#c8473a';
+      ctx.beginPath();
+      ctx.ellipse(-2.6, 2.7, 1.6, 0.9, 0.2, 0, TAU);
+      ctx.fill();
+    }
+
+    // Head, dipping to peck while feeding
+    ctx.save();
+    ctx.translate(4.6, -3 + peck);
+    ctx.rotate(peck * 0.12);
+    ctx.fillStyle = pitta ? '#b58a4d' : '#93877a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 2.9, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = pitta ? '#2a2420' : '#d9c36a';
+    ctx.beginPath();
+    ctx.moveTo(2.4, -0.8);
+    ctx.lineTo(6, 0.2);
+    ctx.lineTo(2.4, 1);
+    ctx.closePath();
+    ctx.fill();
+    if (pitta) {
+      ctx.fillStyle = '#f3ead4';
+      ctx.beginPath();
+      ctx.ellipse(0.9, 1.5, 1.9, 1, 0.1, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = '#f0e2bd';
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(-2.4, -1.4); ctx.lineTo(2.2, -1.6);
+      ctx.stroke();
+      ctx.strokeStyle = '#161412';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(-2.6, -0.2); ctx.lineTo(2.5, -0.4);
+      ctx.stroke();
+      glint(1.2, -0.6, 0.28);
+    } else {
+      ctx.fillStyle = '#f1ecd9';
+      ctx.beginPath();
+      ctx.arc(1, -0.6, 0.85, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#1a1613';
+      ctx.beginPath();
+      ctx.arc(1.1, -0.6, 0.42, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawAnimal(a, t) {
@@ -1503,6 +2350,9 @@
     else if (a.kind === 'hornbill') drawHornbill(a, t);
     else if (a.kind === 'ibis') drawIbis(a, t);
     else if (a.kind === 'wildDog') drawWildDog(a, t);
+    else if (a.kind === 'rabbit') drawRabbit(a, t);
+    else if (a.kind === 'mongoose') drawMongoose(a, t);
+    else if (a.kind === 'smallBird') drawSmallBird(a, t);
 
     ctx.restore();
   }
@@ -1574,7 +2424,7 @@
       c.tx = side > 0 ? w + edgeOf(c) + rand(0, 60) : -edgeOf(c) - rand(0, 60);
       c.ty = groundY(c.y + rand(-22, 22));
       c.runSpeed = rand(95, 135) * speedScale();
-      any = true;
+      if (!c.binocularOnly) any = true;
     }
     if (any && !testMode) {
       $('sightingHint').textContent = 'Alarm in the clearing';
@@ -1669,7 +2519,7 @@
     const count = spec.group ? Math.floor(rand(spec.group[0], spec.group[1] + 0.99)) : 1;
 
     // Behaviour mode: most ground animals linger; some simply pass through. Birds fly across.
-    const linger = !fly && (gallery || Math.random() < LINGER_CHANCE);
+    const linger = !fly && (gallery || spec.binocularOnly || Math.random() < LINGER_CHANCE);
     const side = Math.random() < 0.5 ? -1 : 1;                             // -1 enters from the left, 1 from the right
     const fromBelow = linger && !gallery && Math.random() < 0.15;          // sometimes walk up out of the foreground
     const exitRoll = Math.random();
@@ -1679,7 +2529,7 @@
     let homeX = rand(w * 0.22, w * 0.78);
     let homeY = rand(h * 0.65, h * 0.77);
     if (linger && !spec.predator) {
-      const settled = creatures.filter(c => !c.fly && !c.predator && c.state === 'act');
+      const settled = creatures.filter(c => !c.fly && !c.predator && !c.binocularOnly && c.state === 'act');
       if (settled.length && Math.random() < 0.6) {
         const o = settled[Math.floor(Math.random() * settled.length)];
         homeX = clamp(o.x + (Math.random() < 0.5 ? -1 : 1) * rand(70, 140), w * 0.12, w * 0.88);
@@ -1687,7 +2537,7 @@
       }
     }
 
-    const speed = (fly ? rand(30, 42) : spec.predator ? rand(14, 19) : rand(16, 23)) * ss;
+    const speed = (fly ? rand(30, 42) : spec.predator ? rand(14, 19) : rand(16, 23)) * ss * (spec.speedMul || 1);
     const stay = gallery ? 40 : rand(22, 50);
     const skyY = rand(h * 0.22, h * 0.46);
     const skyDrift = rand(-h * 0.06, h * 0.06);
@@ -1742,6 +2592,9 @@
       creatures.push(a);
     }
 
+    // Small wildlife slips in unannounced; it is there to be discovered through the binoculars
+    if (opts.quiet) return;
+
     const groupNote = count > 1 ? ' (small group of ' + count + ')' : spec.bull ? ' (solitary bull)' : '';
     const hint = fly ? 'Wings across the canopy'
       : spec.predator ? 'Something moves along the treeline'
@@ -1759,11 +2612,11 @@
   }
 
   function spawn() {
-    const ground = creatures.filter(c => !c.fly);
+    const ground = creatures.filter(c => !c.fly && !c.binocularOnly);
     const predatorHere = creatures.some(c => c.predator);
 
     // Special events start when the forest is clear and the event cooldown has passed
-    if (creatures.length === 0 && eventCooldown <= 0 && Math.random() < 0.22) {
+    if (!hasMainAnimals() && eventCooldown <= 0 && Math.random() < 0.22) {
       spawnEvent();
       eventCooldown = rand(28, 45);
       return;
@@ -1775,7 +2628,7 @@
       return;
     }
 
-    const spec = pickWeighted(animals);
+    const spec = pickWeighted(mainAnimals);
     // No newcomers wander in on top of a hunting predator
     if (predatorHere && isPrey(spec)) return;
     // The busier the clearing, the less likely another group joins, so 5+ is rare and 8+ very rare.
@@ -1814,32 +2667,91 @@
     showGalleryItem();
   }
 
+  // Paints the forest once. throughLens = the magnified view inside the binoculars, where small wildlife shows up.
+  function drawScene(t, throughLens) {
+    drawBackground(t, throughLens);
+    for (const a of creatures) {
+      // Small wildlife keeps moving even while it is too small to see without the binoculars
+      if (!a.binocularOnly || throughLens || testMode) drawAnimal(a, t);
+    }
+    drawForegroundFoliage(t);
+  }
+
+  // Dark barrel, soft edge falloff, and a glint of glass around the binocular view
+  function drawLens(R) {
+    const edge = ctx.createRadialGradient(aim.x, aim.y, R * 0.7, aim.x, aim.y, R);
+    edge.addColorStop(0, 'rgba(5,10,8,0)');
+    edge.addColorStop(1, 'rgba(5,10,8,0.6)');
+    ctx.fillStyle = edge;
+    ctx.beginPath();
+    ctx.arc(aim.x, aim.y, R, 0, TAU);
+    ctx.fill();
+
+    const rim = Math.max(5, R * 0.06);
+    ctx.strokeStyle = '#0a0f0c';
+    ctx.lineWidth = rim;
+    ctx.beginPath();
+    ctx.arc(aim.x, aim.y, R, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(190,200,185,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(aim.x, aim.y, R - rim / 2, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = R * 0.05;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(aim.x, aim.y, R * 0.84, -2.5, -1.6);
+    ctx.stroke();
+  }
+
   function draw(t, dt) {
     ctx.clearRect(0, 0, w, h);
-    ctx.save();
-    ctx.translate(w / 2, h / 2);
-    ctx.scale(zoom, zoom);
-    ctx.translate(-w / 2, -h / 2);
 
-    drawBackground(t);
-
+    for (const a of creatures) updateCreature(a, dt);
     // Sort ground animals by Y depth so nearer ones draw in front
     creatures.sort((a, b) => a.y - b.y);
 
-    for (const a of creatures) {
-      updateCreature(a, dt);
-      drawAnimal(a, t);
+    drawScene(t, false);
+    if (binoculars) {
+      // Through the binoculars: the window dims to a faint outline for finding your bearings,
+      // and a round, magnified patch of forest around the aim point comes into focus
+      const R = lensRadius();
+      ctx.fillStyle = 'rgba(5,10,8,0.84)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(aim.x, aim.y, R, 0, TAU);
+      ctx.clip();
+      ctx.translate(aim.x, aim.y);
+      ctx.scale(BINOC_ZOOM, BINOC_ZOOM);
+      ctx.translate(-aim.x, -aim.y);
+      drawScene(t, true);
+      ctx.restore();
+      drawLens(R);
     }
-
-    drawForegroundFoliage(t);
-    ctx.restore();
 
     // Animals leave by walking off-screen; nothing fades out (the age check is only a safety net)
     creatures = creatures.filter(a => !a.gone && a.age < 600);
     if (activeEvent && !creatures.some(c => c.isEvent)) activeEvent = null;
 
+    // Noticing a small animal through the lens is its own quiet reward
+    let found = null;
+    if (binoculars && !testMode) {
+      for (const c of creatures) {
+        if (c.binocularOnly && inLens(c) && (!found || aimDist(c) < aimDist(found))) found = c;
+      }
+      if (found && (!lensFind || lensFind.name !== found.name)) {
+        $('sightingHint').textContent = 'Spotted through the binoculars';
+        $('messageTitle').textContent = found.name + ' · ' + found.rarity;
+        $('messageText').textContent = 'A small visitor you would never have noticed with the naked eye.';
+      }
+    }
+    lensFind = found;
+
     // Busy clearings are special: 5+ animals in view is Rare, 8+ is Very rare
-    const inViewCount = creatures.filter(inView).length;
+    const inViewCount = creatures.filter(c => inView(c) && !c.binocularOnly).length;
     const tier = inViewCount >= 8 ? 2 : inViewCount >= 5 ? 1 : 0;
     if (tier > gatherTier && !activeEvent && !testMode) {
       $('sightingHint').textContent = tier === 2 ? 'The clearing is full of life' : 'A busy clearing';
@@ -1848,11 +2760,11 @@
     }
     gatherTier = tier;
 
-    if (creatures.length === 0) {
-      if (testMode) {
-        // Keep the gallery item on show by bringing the same index back in after it leaves
-        showGalleryItem();
-      } else if (elapsed > 8) {
+    if (testMode) {
+      // Keep the gallery item on show by bringing the same index back in after it leaves
+      if (creatures.length === 0) showGalleryItem();
+    } else if (!hasMainAnimals() && !lensFind) {
+      if (elapsed > 8) {
         const hush = emptyFor >= 45 ? 'A very rare, deep stillness has settled over the forest.'
           : emptyFor >= 20 ? 'A rare hush. Even the forest is holding its breath.'
           : 'The forest has its own pace. Stay a while.';
@@ -1872,7 +2784,7 @@
 
     if (!testMode) {
       // When the last animal leaves, choose how long the forest stays empty
-      const empty = creatures.length === 0;
+      const empty = !hasMainAnimals();
       if (empty && !wasEmpty) { nextSpawn = quietDelay(); emptyFor = 0; }
       if (empty) emptyFor += dt;
       wasEmpty = empty;
@@ -1882,6 +2794,16 @@
         const hasEventNow = creatures.some(c => c.isEvent);
         if (!hasEventNow && creatures.length < SOFT_CAP) spawn();
         nextSpawn = rand(10, 18);
+      }
+
+      // Small wildlife wanders in on its own schedule, but stays hidden while a predator is about
+      nextSmall -= dt;
+      if (nextSmall <= 0) {
+        const smallCount = creatures.filter(c => c.binocularOnly).length;
+        if (smallCount < SMALL_CAP && !creatures.some(c => c.predator)) {
+          spawnAnimal(pickWeighted(smallAnimals), { quiet: true });
+        }
+        nextSmall = rand(12, 24);
       }
     }
     draw(now, dt);
@@ -1897,8 +2819,11 @@
   }
 
   function capture() {
-    const visible = creatures.filter(inView);
-    const a = visible.sort((x, y) => Math.abs(x.x - w / 2) - Math.abs(y.x - w / 2))[0];
+    // Only what the player can actually see counts: the whole window, or just the lens through the binoculars
+    const visible = creatures.filter(isSeen);
+    const a = visible.sort(binoculars
+      ? (x, y) => aimDist(x) - aimDist(y)
+      : (x, y) => Math.abs(x.x - w / 2) - Math.abs(y.x - w / 2))[0];
     const gathering = visible.length >= 8 ? 'Very rare' : visible.length >= 5 ? 'Rare' : null;
 
     const flash = $('flash');
@@ -1926,7 +2851,7 @@
       $('messageTitle').textContent = 'Lovely capture';
       $('messageText').textContent = 'A ' + a.rarity.toLowerCase() + ' sighting of ' + a.name.toLowerCase() + '. Your photo has been downloaded.';
     } else {
-      const stillness = creatures.length ? '' : emptyFor >= 45 ? ' · Very rare stillness' : emptyFor >= 20 ? ' · Rare stillness' : '';
+      const stillness = hasMainAnimals() ? '' : emptyFor >= 45 ? ' · Very rare stillness' : emptyFor >= 20 ? ' · Rare stillness' : '';
       showToast('Snapshot captured · No animal in view' + stillness);
     }
 
@@ -1934,22 +2859,42 @@
     if (testMode) setTimeout(advanceGallery, 450);
   }
 
-  $('zoomIn').addEventListener('click', () => {
-    zoom = Math.min(1.65, +(zoom + 0.15).toFixed(2));
-    $('zoomLabel').textContent = zoom.toFixed(1) + '×';
-  });
-  $('zoomOut').addEventListener('click', () => {
-    zoom = Math.max(1, +(zoom - 0.15).toFixed(2));
-    $('zoomLabel').textContent = zoom.toFixed(1) + '×';
-  });
-  $('capture').addEventListener('click', capture);
-  canvas.addEventListener('pointermove', e => {
+  function setBinoculars(on) {
+    binoculars = on;
+    lensFind = null;
+    // Raising or lowering the binoculars starts from the middle of the window
+    setAim(w / 2, h / 2);
+    const btn = $('binoculars');
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('binocLabel').textContent = on ? 'Lower binoculars' : 'Binoculars';
+    canvas.parentElement.classList.toggle('binoc', on);
+    showToast(on ? 'Binoculars up · move or drag to look around' : 'Binoculars lowered');
+  }
+
+  // The lens follows the mouse, or a dragging finger. A finger sits low in the lens so it does not cover the view.
+  function aimFromPointer(e) {
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left;
     pointer.y = e.clientY - r.top;
+    if (!binoculars) return;
+    const lift = e.pointerType === 'touch' ? lensRadius() * 0.6 : 0;
+    setAim(pointer.x, pointer.y - lift);
+  }
+
+  $('binoculars').addEventListener('click', () => setBinoculars(!binoculars));
+  $('capture').addEventListener('click', capture);
+  canvas.addEventListener('pointermove', aimFromPointer);
+  canvas.addEventListener('pointerdown', e => {
+    // Keep following the finger even if it slides off the scene
+    if (binoculars && canvas.setPointerCapture) {
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* not supported for this pointer */ }
+    }
+    aimFromPointer(e);
   });
   if (testMode) {
-    canvas.addEventListener('pointerup', advanceGallery);
+    // Tapping the scene advances the gallery, unless the tap is aiming the binoculars
+    canvas.addEventListener('pointerup', () => { if (!binoculars) advanceGallery(); });
   }
   window.addEventListener('resize', resize);
   resize();
