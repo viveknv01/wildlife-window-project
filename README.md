@@ -10,8 +10,9 @@ This repository contains the playable first prototype and the product/technical 
 
 - One illustrated jungle environment and one window view
 - Morning/daytime atmosphere
-- 15 animal/bird entries (with small herds for deer and gaur, plus a rare lone gaur bull)
-- 7 special wildlife encounter events (Rare, Ultra Rare, and Legendary)
+- 16 animal/bird entries (with small herds for deer and gaur, a rare lone gaur bull, and wild dog packs)
+- 8 special wildlife encounter events (Rare, Very rare, Ultra Rare, and Legendary)
+- Animals walk in and out, linger to graze, drink, or rest, and run from predators
 - Random appearances and simple movement
 - Zoom controls
 - Capture downloads the current canvas as a PNG

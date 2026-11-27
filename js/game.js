@@ -14,11 +14,12 @@
     { name: 'Great Indian hornbill', kind: 'hornbill', sub: 'great', fly: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#232624' },
     { name: 'Indian grey hornbill', kind: 'hornbill', sub: 'grey', fly: true, rarity: 'Rare', weight: 3.5, scale: 0.78, color: '#7e8078' },
     { name: 'Ibis', kind: 'ibis', fly: true, rarity: 'Rare', weight: 3.5, scale: 0.8, color: '#3b3735' },
-    { name: 'Tiger', kind: 'tiger', rarity: 'Very rare', weight: 1.1, scale: 1.22, color: '#d97b29' },
-    { name: 'Leopard', kind: 'leopard', rarity: 'Very rare', weight: 1.1, scale: 1.14, color: '#cfa04e' },
+    { name: 'Tiger', kind: 'tiger', predator: true, rarity: 'Very rare', weight: 1.1, scale: 1.22, color: '#d97b29' },
+    { name: 'Leopard', kind: 'leopard', predator: true, rarity: 'Very rare', weight: 1.1, scale: 1.14, color: '#cfa04e' },
     { name: 'Asian Elephant Tusk', kind: 'elephant', tusks: true, rarity: 'Very rare', weight: 1.0, scale: 1.4, color: '#636860' },
     { name: 'Sloth Bear', kind: 'bear', rarity: 'Very rare', weight: 1.0, scale: 1.02, color: '#272322' },
-    { name: 'Black Leopard', kind: 'leopard', black: true, rarity: 'Ultra Rare', weight: 0.45, scale: 1.14, color: '#1b1d24' }
+    { name: 'Black Leopard', kind: 'leopard', black: true, predator: true, rarity: 'Ultra Rare', weight: 0.45, scale: 1.14, color: '#1b1d24' },
+    { name: 'Wild Dog', kind: 'wildDog', predator: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#b5562b', group: [2, 4] }
   ];
 
   const events = [
@@ -32,9 +33,9 @@
       build: (w, h, sc) => {
         const dir = Math.random() < 0.5 ? -1 : 1;
         return [{
-          name: 'Indian peacock dancing', kind: 'peacock', pose: 'dance', rarity: 'Rare',
+          name: 'Indian peacock dancing', kind: 'peacock', perform: 'dance', stay: rand(16, 24), rarity: 'Rare',
           x: rand(w * 0.3, w * 0.7), y: rand(h * 0.68, h * 0.77), dir,
-          phase: rand(0, 7), scale: 1.06 * sc, alpha: 0, life: rand(16, 24), age: 0, speed: rand(1.5, 3.5),
+          phase: rand(0, 7), scale: 1.06 * sc, speed: rand(18, 24),
           color: '#1b6d72', isEvent: true
         }];
       }
@@ -51,7 +52,7 @@
         const dir = Math.random() < 0.5 ? -1 : 1;
         const baseX = dir > 0 ? rand(w * 0.08, w * 0.28) : rand(w * 0.72, w * 0.92);
         const baseY = rand(h * 0.64, h * 0.75);
-        const spd = rand(5, 8.5);
+        const spd = rand(15, 20);
         const list = [];
         for (let i = 0; i < count; i++) {
           const isCalf = i % 4 === 2;
@@ -80,7 +81,7 @@
         const dir = Math.random() < 0.5 ? -1 : 1;
         const baseX = dir > 0 ? rand(w * 0.08, w * 0.28) : rand(w * 0.72, w * 0.92);
         const baseY = rand(h * 0.64, h * 0.75);
-        const spd = rand(5, 8.5);
+        const spd = rand(15, 20);
         const list = [];
         for (let i = 0; i < count; i++) {
           const hasTusks = i === 0 || i === Math.floor(count / 2);
@@ -111,7 +112,7 @@
         const dir = Math.random() < 0.5 ? -1 : 1;
         const x = rand(w * 0.24, w * 0.74);
         const y = rand(h * 0.68, h * 0.77);
-        const spd = rand(5, 8.5);
+        const spd = rand(15, 20);
         const life = rand(16, 23);
         return [
           {
@@ -139,7 +140,7 @@
         const dir = Math.random() < 0.5 ? -1 : 1;
         const baseX = dir > 0 ? rand(w * 0.08, w * 0.25) : rand(w * 0.75, w * 0.92);
         const baseY = rand(h * 0.22, h * 0.42);
-        const spd = rand(18, 26);
+        const spd = rand(34, 44);
         const list = [];
         for (let i = 0; i < count; i++) {
           const row = i % 2 === 0 ? 1 : -1;
@@ -164,20 +165,21 @@
       title: 'Tuskers sparring',
       text: 'Two powerful bull elephants lock tusks in a rare test of strength.',
       build: (w, h, sc) => {
-        const cx = rand(w * 0.38, w * 0.62);
+        // Meet near the middle so both bulls walk in from opposite sides and arrive together
+        const cx = rand(w * 0.47, w * 0.53);
         const cy = rand(h * 0.68, h * 0.76);
-        const life = rand(16, 23);
+        const stay = rand(16, 23);
         const gap = 58 * sc;
         return [
           {
-            name: 'Tuskers fighting', eventName: 'Tuskers fighting', kind: 'elephant', tusks: true, pose: 'fight',
+            name: 'Tuskers fighting', eventName: 'Tuskers fighting', kind: 'elephant', tusks: true, perform: 'fight', stay,
             rarity: 'Legendary', x: cx - gap, y: cy, dir: 1, phase: 0,
-            scale: 1.36 * sc, alpha: 0, life, age: 0, speed: 0, color: '#61665e', isEvent: true
+            scale: 1.36 * sc, speed: 22, color: '#61665e', isEvent: true
           },
           {
-            name: 'Tuskers fighting', eventName: 'Tuskers fighting', kind: 'elephant', tusks: true, pose: 'fight',
+            name: 'Tuskers fighting', eventName: 'Tuskers fighting', kind: 'elephant', tusks: true, perform: 'fight', stay,
             rarity: 'Legendary', x: cx + gap, y: cy + 3, dir: -1, phase: Math.PI,
-            scale: 1.36 * sc, alpha: 0, life, age: 0, speed: 0, color: '#585d56', isEvent: true
+            scale: 1.36 * sc, speed: 22, color: '#585d56', isEvent: true
           }
         ];
       }
@@ -193,7 +195,7 @@
         const dir = Math.random() < 0.5 ? -1 : 1;
         const x = rand(w * 0.25, w * 0.72);
         const y = rand(h * 0.68, h * 0.77);
-        const spd = rand(6.5, 10.5);
+        const spd = rand(14, 19);
         const life = rand(15, 22);
         return [
           {
@@ -207,6 +209,46 @@
             scale: 1.12 * sc, alpha: 0, life, age: 0, speed: spd, color: '#1b1d24', isEvent: true
           }
         ];
+      }
+    },
+    {
+      name: 'Wild Dog Pack Hunting',
+      rarity: 'Very rare',
+      weight: 1,
+      hint: 'A sudden rush through the undergrowth',
+      title: 'Wild dogs on the hunt',
+      text: 'A pack of wild dogs sweeps through the clearing, sending the deer bounding for cover.',
+      build: (w, h, sc) => {
+        // Deer burst in from one side at a run with the pack close behind; everything is pre-staged off-screen
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        const startX = dir > 0 ? -110 : w + 110;
+        const endX = dir > 0 ? w + 130 : -130;
+        const groundY = y => Math.min(h * 0.8, Math.max(h * 0.62, y));
+        const baseY = rand(h * 0.67, h * 0.75);
+        const deerCount = Math.floor(rand(3, 5.99));
+        const dogCount = Math.floor(rand(5, 8.99));
+        const run = rand(100, 118) * Math.max(0.6, Math.min(1, sc));
+        const list = [];
+        for (let i = 0; i < deerCount; i++) {
+          list.push({
+            name: 'Spotted deer', eventName: 'Wild Dog Pack Hunting', kind: 'deer', sub: 'spotted', rarity: 'Very rare',
+            x: startX - dir * i * rand(34, 48), y: groundY(baseY + rand(-20, 20)), dir, phase: rand(0, 7),
+            scale: 0.96 * rand(0.84, 1.02) * sc, speed: run, runSpeed: run * rand(0.98, 1.06),
+            state: 'flee', tx: endX, ty: groundY(baseY + rand(-26, 26)), fast: true,
+            hasAntlers: i === 0, color: '#b97e48', isEvent: true
+          });
+        }
+        const packLead = deerCount * 42 + 90;
+        for (let j = 0; j < dogCount; j++) {
+          list.push({
+            name: 'Wild Dog (Pack)', eventName: 'Wild Dog Pack Hunting', kind: 'wildDog', predator: true, rarity: 'Very rare',
+            x: startX - dir * (packLead + j * rand(26, 36)), y: groundY(baseY + rand(-22, 22)), dir, phase: rand(0, 7),
+            scale: 0.9 * rand(0.9, 1.05) * sc, speed: run * rand(0.92, 0.99),
+            state: 'cross', tx: endX, ty: groundY(baseY + rand(-24, 24)), fast: true,
+            color: '#b5562b', isEvent: true
+          });
+        }
+        return list;
       }
     }
   ];
@@ -233,6 +275,39 @@
     }
     return list[0];
   };
+
+  // ---- Behaviour settings (easy to tune) ----
+  const LINGER_CHANCE = 0.65;   // ground animals that stop to graze/sit/drink; the rest simply pass through
+  const SOFT_CAP = 16;          // performance guard only, not a gameplay limit on species
+  const EDGE = 100;             // off-screen staging distance for event groups
+  const GROUND_TOP = 0.62, GROUND_BOT = 0.8;
+  const RARITY_RANK = { 'Common': 0, 'Uncommon': 1, 'Rare': 2, 'Very rare': 3, 'Ultra Rare': 4, 'Legendary': 5 };
+  // Activities each kind can choose while lingering (repeats make an activity more likely)
+  const ACTIVITIES = {
+    deer: ['graze', 'graze', 'graze', 'sit', 'rest', 'wait', 'drink', 'walk'],
+    gaur: ['graze', 'graze', 'sit', 'wait', 'drink', 'walk'],
+    boar: ['graze', 'graze', 'wait', 'drink', 'walk', 'sit'],
+    elephant: ['graze', 'wait', 'drink', 'walk'],
+    peacock: ['graze', 'wait', 'walk'],
+    bear: ['graze', 'wait', 'walk', 'sit'],
+    tiger: ['walk', 'wait', 'sit', 'drink'],
+    leopard: ['walk', 'wait', 'sit', 'drink'],
+    wildDog: ['walk', 'wait', 'sit', 'drink']
+  };
+  // Local Y of the feet for each kind (used for the lying-down pose)
+  const FEET_Y = { deer: 24, boar: 21, gaur: 28, elephant: 35, peacock: 21, bear: 21, tiger: 24, leopard: 24, wildDog: 21 };
+
+  let gaitAmp = 1;              // 1 while walking, 0 while standing still (scales leg swing)
+  let wasEmpty = true, emptyFor = 0, gatherTier = 0;
+
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const groundY = y => clamp(y, h * GROUND_TOP, h * GROUND_BOT);
+  const speedScale = () => clamp(w / 850, 0.6, 1.15);
+  const edgeOf = a => 52 * a.scale + 10;
+  const inView = a => a.x > 0 && a.x < w && a.y < h + 10;
+  const pond = () => ({ x: w * 0.6, y: h * 0.735, rx: Math.max(30, w * 0.07), ry: Math.max(5, h * 0.015) });
+  // Prey run from predators; birds (including peafowl) and tuskers hold their ground
+  const isPrey = c => !c.fly && !c.predator && c.kind !== 'peacock' && !(c.kind === 'elephant' && c.tusks);
 
   function resize() {
     const r = canvas.getBoundingClientRect();
@@ -308,6 +383,21 @@
     ctx.lineTo(0, h);
     ctx.fill();
 
+    // Small forest pool where animals come to drink
+    const p = pond();
+    ctx.fillStyle = '#34503a';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 1.5, p.rx + 5, p.ry + 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#8fb3ad';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#cfe2d588';
+    ctx.beginPath();
+    ctx.ellipse(p.x - p.rx * 0.25 + Math.sin(t * 0.7) * 2, p.y - p.ry * 0.2, p.rx * 0.45, p.ry * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     // Sunlight shafts
     for (let i = 0; i < 5; i++) {
       let x = w * (0.12 + i * 0.19);
@@ -377,7 +467,7 @@
     ctx.lineWidth = width;
     ctx.lineCap = 'round';
     positions.forEach((lx, idx) => {
-      const swing = Math.sin(t * 6.5 + phase + idx * 1.6) * 4.5;
+      const swing = Math.sin(t * 6.5 + phase + idx * 1.6) * 4.5 * gaitAmp;
       ctx.beginPath();
       ctx.moveTo(lx, topY);
       ctx.lineTo(lx + swing * 0.4, (topY + bottomY) * 0.5);
@@ -416,7 +506,8 @@
     }
 
     // Neck & head
-    const graze = Math.sin(t * 1.8 + a.phase) * 2.5;
+    // headDrop lowers the head to the ground while grazing or drinking
+    const graze = (a.headDrop || 0) + Math.sin(t * 1.8 + a.phase) * 2.5;
     ctx.fillStyle = c;
     ctx.beginPath();
     ctx.moveTo(15, -4);
@@ -698,7 +789,7 @@
     drawShadow(38, 7.5, 36);
 
     // Pillar legs
-    const legSwing = fighting ? 1.5 : 3.5;
+    const legSwing = fighting ? 1.5 : 3.5 * gaitAmp;
     ctx.strokeStyle = '#555a53';
     ctx.lineWidth = 7.5;
     ctx.lineCap = 'round';
@@ -820,8 +911,8 @@
   }
 
   function drawTiger(a, t) {
-    const stride = Math.sin(t * 5.8 + a.phase);
-    const strideOpp = Math.sin(t * 5.8 + a.phase + Math.PI);
+    const stride = Math.sin(t * 5.8 + a.phase) * gaitAmp;
+    const strideOpp = Math.sin(t * 5.8 + a.phase + Math.PI) * gaitAmp;
     const sway = Math.sin(t * 2.6 + a.phase) * 2.2;
 
     drawShadow(38, 6, 26);
@@ -996,8 +1087,8 @@
 
   function drawLeopard(a, t) {
     const isBlack = !!a.black;
-    const stride = Math.sin(t * 6.2 + a.phase);
-    const strideOpp = Math.sin(t * 6.2 + a.phase + Math.PI);
+    const stride = Math.sin(t * 6.2 + a.phase) * gaitAmp;
+    const strideOpp = Math.sin(t * 6.2 + a.phase + Math.PI) * gaitAmp;
     const sway = Math.sin(t * 2.4 + a.phase) * 2.5;
 
     drawShadow(35, 5.5, 25);
@@ -1286,14 +1377,121 @@
     ctx.stroke();
   }
 
+  function drawWildDog(a, t) {
+    // Indian wild dog (dhole): lean rufous body, pale chest, rounded ears, dark bushy tail
+    drawShadow(22, 4, 22);
+    drawLegs([-14, -8, 9, 14], 5, 21, t, a.phase, '#8f4220', 2.8);
+
+    // Bushy black tail carried low
+    const sway = Math.sin(t * 3 + a.phase) * 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#2a1c16';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-20, -2);
+    ctx.quadraticCurveTo(-29, 2, -32, 10 + sway);
+    ctx.stroke();
+    ctx.strokeStyle = a.color;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(-18, -4);
+    ctx.lineTo(-23, -1);
+    ctx.stroke();
+
+    // Lean body with deep chest and tucked waist
+    ctx.fillStyle = a.color;
+    ctx.beginPath();
+    ctx.moveTo(18, -8);
+    ctx.bezierCurveTo(10, -11, -6, -10, -19, -7);
+    ctx.bezierCurveTo(-24, -4, -22, 3, -17, 5);
+    ctx.bezierCurveTo(-8, 3, 2, 7, 12, 7);
+    ctx.bezierCurveTo(18, 6, 21, 0, 18, -8);
+    ctx.fill();
+
+    // Pale chest and belly
+    ctx.fillStyle = '#e6c9a0';
+    ctx.beginPath();
+    ctx.ellipse(8, 5, 9, 2.6, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Neck and head
+    ctx.fillStyle = a.color;
+    ctx.beginPath();
+    ctx.moveTo(12, -8);
+    ctx.lineTo(19, -16);
+    ctx.lineTo(26, -11);
+    ctx.lineTo(19, 1);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(23, -13, 6.5, 5, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Short dark muzzle and pale throat
+    ctx.fillStyle = '#3b2419';
+    ctx.beginPath();
+    ctx.moveTo(27, -15.5);
+    ctx.lineTo(34, -12);
+    ctx.lineTo(33, -9);
+    ctx.lineTo(26, -9.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#e6c9a0';
+    ctx.beginPath();
+    ctx.ellipse(24, -8.5, 3.5, 1.8, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Large rounded ears
+    ctx.fillStyle = a.color;
+    ctx.beginPath();
+    ctx.ellipse(19, -19, 3.2, 4.8, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e9d3b0';
+    ctx.beginPath();
+    ctx.ellipse(19.3, -18.6, 1.6, 2.9, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye and nose
+    ctx.fillStyle = '#17110e';
+    ctx.beginPath();
+    ctx.arc(25.5, -14, 1.1, 0, Math.PI * 2);
+    ctx.arc(34, -11.2, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   function drawAnimal(a, t) {
+    const still = !a.moving && !a.fly;
+    const acting = a.state === 'act' && still && !a.pose;
+    const lying = acting && (a.activity === 'sit' || a.activity === 'rest');
+    const headLow = acting && (a.activity === 'graze' || (a.activity === 'drink' && a.atSpot));
+    a.headDrop = headLow ? 36 : (acting && a.activity === 'rest') ? 9 : 0;
+    gaitAmp = still ? 0 : 1;
+    // Running animals (fleeing prey, hunting pack) cycle their legs faster
+    const tt = (a.state === 'flee' || a.fast) && a.moving ? t * 2.1 : t;
+
     ctx.save();
     ctx.translate(a.x, a.y);
     ctx.scale(a.dir * a.scale, a.scale);
-    const bob = a.fly ? Math.sin(t * 5 + a.phase) * 3.5 : Math.sin(t * 3.2 + a.phase) * 1.6;
+    const bob = a.fly ? Math.sin(t * 5 + a.phase) * 3.5 : still ? Math.sin(t * 1.4 + a.phase) * 0.4 : Math.sin(tt * 3.2 + a.phase) * 1.6;
     ctx.translate(0, bob);
-    ctx.globalAlpha = a.alpha;
+    ctx.globalAlpha = 1;
 
+    if (lying) {
+      // Lying down: settle the body onto the ground and tuck the legs out of sight
+      const feet = FEET_Y[a.kind] || 22;
+      ctx.fillStyle = 'rgba(18, 32, 22, 0.28)';
+      ctx.beginPath();
+      ctx.ellipse(0, feet, 30, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.rect(-95, -95, 190, 95 + feet + 1);
+      ctx.clip();
+      ctx.translate(0, feet * 0.45);
+    } else if (headLow && a.kind !== 'deer' && a.kind !== 'elephant') {
+      // Lean forward so the head reaches the ground (deer lower their neck instead)
+      ctx.rotate((a.kind === 'peacock' ? 0.24 : 0.13) + Math.sin(t * 1.5 + a.phase) * 0.02);
+    }
+
+    t = tt;
     if (a.kind === 'deer') drawDeer(a, t);
     else if (a.kind === 'boar') drawBoar(a, t);
     else if (a.kind === 'gaur') drawGaur(a, t);
@@ -1304,17 +1502,157 @@
     else if (a.kind === 'bear') drawBear(a, t);
     else if (a.kind === 'hornbill') drawHornbill(a, t);
     else if (a.kind === 'ibis') drawIbis(a, t);
+    else if (a.kind === 'wildDog') drawWildDog(a, t);
 
     ctx.restore();
+  }
+
+  // ---- Creature lifecycle: enter -> act (linger) or cross (pass through) -> exit; flee when a predator appears ----
+
+  function moveToward(a, tx, ty, spd, dt) {
+    const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
+    const step = spd * dt;
+    if (Math.abs(dx) > 2) a.dir = dx > 0 ? 1 : -1;
+    if (d <= step || d < 0.5) { a.x = tx; a.y = ty; return true; }
+    a.x += dx / d * step;
+    a.y += dy / d * step;
+    a.moving = true;
+    return false;
+  }
+
+  function startActivity(a) {
+    const list = ACTIVITIES[a.kind] || ['wait', 'walk'];
+    const act = list[Math.floor(Math.random() * list.length)];
+    a.activity = act;
+    a.atSpot = false;
+    a.actTimer = act === 'walk' ? rand(5, 9) : (act === 'sit' || act === 'rest') ? rand(12, 24) : rand(6, 14);
+    if (act === 'walk') {
+      a.tx = clamp(a.homeX + rand(-70, 70), w * 0.06, w * 0.94);
+      a.ty = groundY(a.homeY + rand(-14, 14));
+    } else if (act === 'drink') {
+      const p = pond();
+      const side = a.x < p.x ? -1 : 1;
+      a.tx = p.x + side * (p.rx + 24 * a.scale + rand(-4, 10));
+      a.ty = groundY(p.y + rand(-5, 8));
+    }
+  }
+
+  function beginAct(a) {
+    a.state = 'act';
+    if (a.perform) {
+      a.pose = a.perform;
+      a.activity = 'perform';
+    } else {
+      startActivity(a);
+    }
+  }
+
+  function beginExit(a) {
+    a.state = 'exit';
+    a.pose = null;
+    a.activity = 'walk';
+    if (a.exitSide === 2) {
+      // Walk down into the foreground vegetation and out of the bottom of the view
+      a.tx = a.x + rand(-50, 50);
+      a.ty = h + 70;
+    } else {
+      a.tx = a.exitSide < 0 ? -edgeOf(a) - rand(0, 30) : w + edgeOf(a) + rand(0, 30);
+      a.ty = groundY(a.y + rand(-16, 16));
+    }
+  }
+
+  // Prey bolt away from the predator's position; birds and tuskers stay where they are
+  function triggerFlee(px) {
+    let any = false;
+    for (const c of creatures) {
+      if (!isPrey(c) || c.state === 'flee') continue;
+      const side = c.x >= px ? 1 : -1;
+      c.state = 'flee';
+      c.pose = null;
+      c.activity = 'flee';
+      c.wait = rand(0.05, 0.6);
+      c.tx = side > 0 ? w + edgeOf(c) + rand(0, 60) : -edgeOf(c) - rand(0, 60);
+      c.ty = groundY(c.y + rand(-22, 22));
+      c.runSpeed = rand(95, 135) * speedScale();
+      any = true;
+    }
+    if (any && !testMode) {
+      $('sightingHint').textContent = 'Alarm in the clearing';
+      $('messageTitle').textContent = 'The forest stirs';
+      $('messageText').textContent = 'Something has been scented on the breeze. The herd slips away into the trees.';
+    }
+  }
+
+  function updateCreature(a, dt) {
+    a.age += dt;
+    a.moving = false;
+
+    // A predator stepping into view startles any prey on screen
+    if (a.predator && !a.alarmed && a.x > w * 0.03 && a.x < w * 0.97) {
+      a.alarmed = true;
+      triggerFlee(a.x);
+    }
+
+    if (a.state === 'enter') {
+      if (moveToward(a, a.tx, a.ty, a.speed, dt)) beginAct(a);
+    } else if (a.state === 'act') {
+      if (elapsed >= a.leaveAt) { beginExit(a); return; }
+      if (a.perform) return;
+      if (a.activity === 'drink' && !a.atSpot) {
+        if (moveToward(a, a.tx, a.ty, a.speed * 0.8, dt)) {
+          a.atSpot = true;
+          a.dir = a.x < pond().x ? 1 : -1;
+          a.actTimer = rand(6, 11);
+        }
+        return;
+      }
+      if (a.activity === 'walk' && moveToward(a, a.tx, a.ty, a.speed * 0.7, dt)) a.activity = 'wait';
+      a.actTimer -= dt;
+      if (a.actTimer <= 0) startActivity(a);
+    } else {
+      // cross, exit, flee: keep going until fully off-screen, then leave the scene (no fade)
+      if (a.wait > 0) { a.wait -= dt; return; }
+      const spd = a.state === 'flee' ? a.runSpeed : a.speed;
+      if (moveToward(a, a.tx, a.ty, spd, dt)) a.gone = true;
+    }
+  }
+
+  // Event builders describe a formation on screen; stage it off-screen so it walks in naturally
+  function stageEventGroup(group, gallery) {
+    const movers = group.filter(c => !c.state && !c.perform);
+    if (movers.length) {
+      const dir = movers[0].dir;
+      const lead = dir > 0 ? Math.max(...movers.map(c => c.x)) : Math.min(...movers.map(c => c.x));
+      const shift = (dir > 0 ? -EDGE : w + EDGE) - lead;
+      for (const c of movers) {
+        c.x += shift;
+        c.state = 'cross';
+        c.tx = dir > 0 ? w + EDGE : -EDGE;
+        c.ty = c.y;
+      }
+    }
+    for (const c of group) {
+      if (c.perform && !c.state) {
+        // Performers walk in from behind their facing side, perform at their spot, then leave
+        const side = c.dir > 0 ? -1 : 1;
+        c.tx = c.homeX = c.x;
+        c.ty = c.homeY = c.y;
+        c.x = side < 0 ? -EDGE : w + EDGE;
+        c.state = 'enter';
+        c.leaveAt = elapsed + Math.abs(c.tx - c.x) / c.speed + (gallery ? 45 : c.stay);
+        c.exitSide = c.perform === 'fight' ? side : (Math.random() < 0.5 ? -1 : 1);
+      }
+      c.alpha = 1;
+      c.age = 0;
+      c.moving = false;
+    }
   }
 
   function spawnEvent(forcedEv, opts = {}) {
     const ev = forcedEv || pickWeighted(events);
     const sc = Math.min(w / 850, 1.15);
     const group = ev.build(w, h, sc);
-    if (opts.longLife) {
-      for (const c of group) c.life = Math.max(c.life, 55);
-    }
+    stageEventGroup(group, !!opts.longLife);
     activeEvent = { name: ev.name, rarity: ev.rarity };
     creatures.push(...group);
     $('sightingHint').textContent = opts.testLabel || ev.hint;
@@ -1325,49 +1663,126 @@
   function spawnAnimal(forcedSpec, opts = {}) {
     const spec = forcedSpec || pickWeighted(animals);
     const sc = Math.min(w / 850, 1.15);
+    const ss = speedScale();
     const fly = !!spec.fly;
-    const dir = Math.random() < 0.5 ? -1 : 1;
+    const gallery = !!opts.longLife;
     const count = spec.group ? Math.floor(rand(spec.group[0], spec.group[1] + 0.99)) : 1;
-    const baseX = rand(w * 0.2, w * 0.8);
-    const baseY = fly ? rand(h * 0.24, h * 0.48) : rand(h * 0.65, h * 0.77);
-    const baseSpeed = fly ? rand(15, 23) : rand(5.5, 11.5);
-    const baseLife = opts.longLife ? 55 : rand(14, 23);
 
-    activeEvent = null;
+    // Behaviour mode: most ground animals linger; some simply pass through. Birds fly across.
+    const linger = !fly && (gallery || Math.random() < LINGER_CHANCE);
+    const side = Math.random() < 0.5 ? -1 : 1;                             // -1 enters from the left, 1 from the right
+    const fromBelow = linger && !gallery && Math.random() < 0.15;          // sometimes walk up out of the foreground
+    const exitRoll = Math.random();
+    const exitSide = exitRoll < 0.4 ? -1 : exitRoll < 0.8 ? 1 : 2;          // 2 = leave downward into the vegetation
+
+    // Clearing spot; herbivores like to settle near animals that are already there
+    let homeX = rand(w * 0.22, w * 0.78);
+    let homeY = rand(h * 0.65, h * 0.77);
+    if (linger && !spec.predator) {
+      const settled = creatures.filter(c => !c.fly && !c.predator && c.state === 'act');
+      if (settled.length && Math.random() < 0.6) {
+        const o = settled[Math.floor(Math.random() * settled.length)];
+        homeX = clamp(o.x + (Math.random() < 0.5 ? -1 : 1) * rand(70, 140), w * 0.12, w * 0.88);
+        homeY = groundY(o.y + rand(-18, 18));
+      }
+    }
+
+    const speed = (fly ? rand(30, 42) : spec.predator ? rand(14, 19) : rand(16, 23)) * ss;
+    const stay = gallery ? 40 : rand(22, 50);
+    const skyY = rand(h * 0.22, h * 0.46);
+    const skyDrift = rand(-h * 0.06, h * 0.06);
+    const depthDrift = rand(-h * 0.06, h * 0.06);
+    const eta = fromBelow ? (h + 60 - homeY) / speed : (side < 0 ? homeX + 60 : w + 60 - homeX) / speed;
 
     for (let i = 0; i < count; i++) {
-      const spreadX = i === 0 ? 0 : -dir * (i * rand(28, 44)) + rand(-8, 8);
-      const spreadY = i === 0 ? 0 : rand(-14, 16);
-      const scaleJitter = i === 0 ? 1 : rand(0.84, 1.04);
-      creatures.push({
+      const a = {
         ...spec,
-        x: Math.min(w * 0.88, Math.max(w * 0.12, baseX + spreadX)),
-        y: fly ? baseY + spreadY * 0.6 : Math.min(h * 0.8, Math.max(h * 0.61, baseY + spreadY)),
-        dir,
         phase: rand(0, 7),
-        scale: spec.scale * scaleJitter * sc,
-        alpha: 0,
-        life: baseLife + (opts.longLife ? 0 : rand(-1.5, 2)),
+        scale: spec.scale * (i === 0 ? 1 : rand(0.84, 1.04)) * sc,
+        alpha: 1,
         age: 0,
-        speed: baseSpeed * rand(0.95, 1.05),
+        moving: false,
+        speed: speed * rand(0.97, 1.03),
+        dir: -side,
         hasAntlers: i === 0 || Math.random() < 0.45
-      });
+      };
+      const lag = i * rand(30, 46);                                       // followers trail the leader in
+      const startX = side < 0 ? -edgeOf(a) - lag : w + edgeOf(a) + lag;
+      const farX = side < 0 ? w + edgeOf(a) : -edgeOf(a);
+
+      if (fly) {
+        a.x = startX;
+        a.y = skyY + (i === 0 ? 0 : rand(-14, 14));
+        a.state = 'cross';
+        a.tx = farX;
+        a.ty = a.y + skyDrift;
+      } else if (linger) {
+        a.homeX = clamp(homeX + (i - (count - 1) / 2) * rand(30, 44), w * 0.06, w * 0.94);
+        a.homeY = groundY(homeY + (i === 0 ? 0 : rand(-14, 16)));
+        a.tx = a.homeX;
+        a.ty = a.homeY;
+        if (fromBelow) {
+          a.x = a.homeX + rand(-30, 30);
+          a.y = h + 60 + lag * 0.6;
+        } else {
+          a.x = startX;
+          a.y = groundY(a.homeY + rand(-10, 10));
+        }
+        a.state = 'enter';
+        a.exitSide = exitSide;
+        a.leaveAt = elapsed + eta + stay + i * rand(0.3, 1.4);
+      } else {
+        // Pass straight through the clearing, drifting a little nearer or deeper as it goes
+        a.x = startX;
+        a.y = groundY(homeY + (i === 0 ? 0 : rand(-14, 16)));
+        a.state = 'cross';
+        a.tx = farX;
+        a.ty = groundY(a.y + depthDrift);
+      }
+      creatures.push(a);
     }
 
     const groupNote = count > 1 ? ' (small group of ' + count + ')' : spec.bull ? ' (solitary bull)' : '';
-    $('sightingHint').textContent = opts.testLabel || (fly ? 'Wings across the canopy' : count > 1 ? 'A small herd in the glade' : 'Movement in the forest');
+    const hint = fly ? 'Wings across the canopy'
+      : spec.predator ? 'Something moves along the treeline'
+      : !linger ? 'Movement through the forest'
+      : count > 1 ? 'A small herd settles in the glade' : 'A visitor lingers in the glade';
+    $('sightingHint').textContent = opts.testLabel || hint;
     $('messageTitle').textContent = (opts.testLabel ? opts.testLabel + ' · ' : '') + spec.name + ' · ' + spec.rarity;
     $('messageText').textContent = opts.testHint || ('Take your time. Can you spot the ' + spec.name.toLowerCase() + groupNote + '?');
   }
 
+  // Quiet gaps: usually short; sometimes a rare long hush (up to ~40s), very rarely up to ~120s
+  function quietDelay() {
+    const r = Math.random();
+    return r < 0.78 ? rand(4, 12) : r < 0.95 ? rand(22, 40) : rand(60, 120);
+  }
+
   function spawn() {
-    // Trigger a special event occasionally when the forest is clear and event cooldown has passed
+    const ground = creatures.filter(c => !c.fly);
+    const predatorHere = creatures.some(c => c.predator);
+
+    // Special events start when the forest is clear and the event cooldown has passed
     if (creatures.length === 0 && eventCooldown <= 0 && Math.random() < 0.22) {
       spawnEvent();
       eventCooldown = rand(28, 45);
-    } else {
-      spawnAnimal();
+      return;
     }
+    // A wild dog pack may also burst in on animals that are already in the clearing
+    if (eventCooldown <= 0 && !predatorHere && ground.filter(isPrey).length >= 2 && Math.random() < 0.003) {
+      spawnEvent(events.find(e => e.name === 'Wild Dog Pack Hunting'));
+      eventCooldown = rand(28, 45);
+      return;
+    }
+
+    const spec = pickWeighted(animals);
+    // No newcomers wander in on top of a hunting predator
+    if (predatorHere && isPrey(spec)) return;
+    // The busier the clearing, the less likely another group joins, so 5+ is rare and 8+ very rare.
+    // Predators and birds are less put off by a crowd, but stay within their rarity tier.
+    const n = ground.length;
+    const accept = n === 0 ? 1 : spec.fly ? 0.5 : spec.predator ? 0.4 : n < 5 ? 0.14 : n < 8 ? 0.06 : 0.03;
+    if (Math.random() < accept) spawnAnimal(spec);
   }
 
   function showGalleryItem() {
@@ -1412,26 +1827,38 @@
     creatures.sort((a, b) => a.y - b.y);
 
     for (const a of creatures) {
-      a.age += dt;
-      a.x += a.dir * a.speed * dt;
-      a.alpha = Math.min(1, a.age * 1.4, Math.max(0, (a.life - a.age) * 0.8));
+      updateCreature(a, dt);
       drawAnimal(a, t);
     }
 
     drawForegroundFoliage(t);
     ctx.restore();
 
-    creatures = creatures.filter(a => a.age < a.life && a.x > -140 && a.x < w + 140);
+    // Animals leave by walking off-screen; nothing fades out (the age check is only a safety net)
+    creatures = creatures.filter(a => !a.gone && a.age < 600);
+    if (activeEvent && !creatures.some(c => c.isEvent)) activeEvent = null;
+
+    // Busy clearings are special: 5+ animals in view is Rare, 8+ is Very rare
+    const inViewCount = creatures.filter(inView).length;
+    const tier = inViewCount >= 8 ? 2 : inViewCount >= 5 ? 1 : 0;
+    if (tier > gatherTier && !activeEvent && !testMode) {
+      $('sightingHint').textContent = tier === 2 ? 'The clearing is full of life' : 'A busy clearing';
+      $('messageTitle').textContent = (tier === 2 ? 'A great gathering · Very rare' : 'A lively gathering · Rare');
+      $('messageText').textContent = inViewCount + ' animals are sharing the view. Moments like this do not come often.';
+    }
+    gatherTier = tier;
 
     if (creatures.length === 0) {
-      activeEvent = null;
       if (testMode) {
-        // Keep gallery item visible by respawning the same index if it walked off
+        // Keep the gallery item on show by bringing the same index back in after it leaves
         showGalleryItem();
       } else if (elapsed > 8) {
+        const hush = emptyFor >= 45 ? 'A very rare, deep stillness has settled over the forest.'
+          : emptyFor >= 20 ? 'A rare hush. Even the forest is holding its breath.'
+          : 'The forest has its own pace. Stay a while.';
         $('sightingHint').textContent = 'Listen to the forest';
         $('messageTitle').textContent = 'A quiet moment';
-        $('messageText').textContent = 'The forest has its own pace. Stay a while.';
+        $('messageText').textContent = hush;
       }
     }
   }
@@ -1441,15 +1868,21 @@
     last = now;
     elapsed += dt;
     wind += dt;
-    nextSpawn -= dt;
     if (eventCooldown > 0) eventCooldown -= dt;
 
-    if (!testMode && nextSpawn <= 0) {
-      const hasEventNow = creatures.some(c => c.isEvent);
-      if (!hasEventNow && creatures.length < 3) {
-        spawn();
+    if (!testMode) {
+      // When the last animal leaves, choose how long the forest stays empty
+      const empty = creatures.length === 0;
+      if (empty && !wasEmpty) { nextSpawn = quietDelay(); emptyFor = 0; }
+      if (empty) emptyFor += dt;
+      wasEmpty = empty;
+
+      nextSpawn -= dt;
+      if (nextSpawn <= 0) {
+        const hasEventNow = creatures.some(c => c.isEvent);
+        if (!hasEventNow && creatures.length < SOFT_CAP) spawn();
+        nextSpawn = rand(10, 18);
       }
-      nextSpawn = rand(9, 16);
     }
     draw(now, dt);
     requestAnimationFrame(loop);
@@ -1464,8 +1897,9 @@
   }
 
   function capture() {
-    const visible = creatures.filter(x => x.alpha > 0.5);
+    const visible = creatures.filter(inView);
     const a = visible.sort((x, y) => Math.abs(x.x - w / 2) - Math.abs(y.x - w / 2))[0];
+    const gathering = visible.length >= 8 ? 'Very rare' : visible.length >= 5 ? 'Rare' : null;
 
     const flash = $('flash');
     flash.classList.remove('active');
@@ -1481,6 +1915,10 @@
       showToast('Captured Event: ' + activeEvent.name + ' · ' + activeEvent.rarity);
       $('messageTitle').textContent = 'Remarkable capture!';
       $('messageText').textContent = activeEvent.name + ' (' + activeEvent.rarity + '). Your photo has been downloaded.';
+    } else if (a && gathering && RARITY_RANK[gathering] > (RARITY_RANK[a.rarity] || 0)) {
+      showToast('Captured: Gathering of ' + visible.length + ' animals · ' + gathering);
+      $('messageTitle').textContent = 'Lovely capture';
+      $('messageText').textContent = 'A ' + gathering.toLowerCase() + ' gathering of ' + visible.length + ' animals. Your photo has been downloaded.';
     } else if (a) {
       const sameKindCount = visible.filter(x => x.name === a.name).length;
       const label = sameKindCount > 1 ? a.name + ' (' + sameKindCount + ')' : a.name;
@@ -1488,7 +1926,8 @@
       $('messageTitle').textContent = 'Lovely capture';
       $('messageText').textContent = 'A ' + a.rarity.toLowerCase() + ' sighting of ' + a.name.toLowerCase() + '. Your photo has been downloaded.';
     } else {
-      showToast('Snapshot captured · No animal in view');
+      const stillness = creatures.length ? '' : emptyFor >= 45 ? ' · Very rare stillness' : emptyFor >= 20 ? ' · Rare stillness' : '';
+      showToast('Snapshot captured · No animal in view' + stillness);
     }
 
     // In test gallery, Capture also advances to the next item (mobile-friendly)

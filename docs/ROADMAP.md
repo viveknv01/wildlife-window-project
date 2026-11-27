@@ -37,7 +37,9 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 
 ## Stage 4 — Deeper wildlife behaviour
 
-- [ ] Animal awareness and disturbance reactions
+- [x] Idle activities (grazing, drinking, sitting, resting) and walk-in/walk-out entrances without fades
+- [x] Prey flee when a predator appears
+- [ ] Animal awareness and disturbance reactions (beyond predator flight)
 - [ ] Alarm calls
 - [ ] Species-specific habitat and time preferences
 - [x] Group sightings and animal interactions
