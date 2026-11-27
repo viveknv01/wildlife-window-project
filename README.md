@@ -22,14 +22,6 @@ This repository contains the playable first prototype and the product/technical 
 
 Open `index.html` in a browser, or use VS Code with the Live Server extension.
 
-## Publish with GitHub Pages
-
-1. Push the repository to GitHub.
-2. Open **Settings → Pages**.
-3. Select **Deploy from a branch**.
-4. Select `main` and `/ (root)`, then save.
-5. Open the Pages URL shown by GitHub after deployment.
-
 The site is static and does not require a build command.
 
 ## Start here if you are an AI coding agent
