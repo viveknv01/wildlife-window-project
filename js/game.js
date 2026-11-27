@@ -9,13 +9,13 @@
     {name:'Malabar giant squirrel',kind:'squirrel',rarity:'Uncommon',weight:9,scale:.8,color:'#9b5540'},
     {name:'Indian grey hornbill',kind:'bird',rarity:'Common',weight:18,scale:.75,color:'#d2c7a2'},
     {name:'Racket-tailed drongo',kind:'bird',rarity:'Uncommon',weight:8,scale:.7,color:'#252b2b'},
-    {name:'Wild boar',kind:'boar',rarity:'Common',weight:15,scale:.9,color:'#55473b'},
+    {name:'Wild boar',kind:'boar',rarity:'Uncommon',weight:8,scale:.9,color:'#55473b'},
     {name:'Asian elephant',kind:'elephant',rarity:'Rare',weight:3,scale:1.25,color:'#777c70'},
     {name:'Indian leopard',kind:'leopard',rarity:'Very rare',weight:1,scale:1.0,color:'#b28b55'},
     {name:'Indian junglefowl',kind:'bird',rarity:'Uncommon',weight:8,scale:.7,color:'#8a5941'},
     {name:'Malabar trogon',kind:'bird',rarity:'Rare',weight:3,scale:.75,color:'#c65c42'},
-    {name:'Sambar deer',kind:'deer',rarity:'Uncommon',weight:7,scale:1.1,color:'#74513b'},
-    {name:'Indian giant flying squirrel',kind:'squirrel',rarity:'Rare',weight:2,scale:.85,color:'#a56c4e'}
+    {name:'Sambar deer',kind:'deer',rarity:'Common',weight:27,scale:1.1,color:'#74513b'},
+    {name:'Indian giant flying squirrel',kind:'squirrel',rarity:'Common',weight:22,scale:.85,color:'#a56c4e'}
   ];
   let w=900,h=520,dpr=1,last=0,zoom=1,creatures=[],nextSpawn=2.5,elapsed=0,toastTimer=0,wind=0;
   let pointer={x:0,y:0};
