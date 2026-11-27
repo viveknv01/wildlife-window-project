@@ -15,7 +15,7 @@ Last updated: 2026-11-27
 - 8 special wildlife events (Rare, Very rare, Ultra Rare, and Legendary), including dancing peacock, 10+ elephant herds, sloth bear with cub, ibis flocks, sparring tuskers, dual leopards, and Wild Dog Pack Hunting
 - Natural behaviour: animals walk in and out of the scene (no fades); most linger to graze, drink at a small pool, sit, rest, or stand, and some simply pass through
 - Predator reactions: prey run when a tiger, leopard, black leopard, or wild dog appears; birds, peafowl, and tuskers stay
-- Several species can share the clearing; 5+ animals in view is labelled Rare and 8+ Very rare
+- Several species can share the clearing; gathering labels use species count (5+ Rare, 8+ Very rare) and animal headcount (9+ Rare, 16+ Very rare, 30+ Legendary), taking the higher tier; binoculars-only wildlife is excluded; predator flee and events are unchanged
 - Deliberate quiet periods, with rare longer empty spells (up to about 40 s, very rarely up to about 120 s)
 - Detailed procedural Canvas illustrations and animations per species (walking legs, stripes/rosettes/spots, gaur white stockings and horns, hornbill casque, curved ibis bill, peacock fanned train), with shaded coats, soft ground shadows, darker far-side legs, hooves, eye highlights, whiskers, fur, and skin folds
 - Binoculars: a toggle button raises a round lens that magnifies 2.2× and follows the mouse or a dragging finger; the rest of the window dims. This replaces the old whole-canvas zoom buttons
