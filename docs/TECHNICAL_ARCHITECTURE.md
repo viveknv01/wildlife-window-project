@@ -16,12 +16,14 @@ No build step or backend is required.
 ```text
 index.html
    ├── css/style.css
+   ├── js/settings.js   # curtain preference only
    └── js/game.js
          ├── animal definitions and rarity weights
+         ├── opening curtain reveal
          ├── random spawn selection
          ├── animation/game loop
          ├── Canvas scene and animal drawing
-         ├── zoom controls
+         ├── binoculars
          └── PNG capture/download
 ```
 
@@ -29,7 +31,8 @@ index.html
 
 - `index.html` contains the page shell, status labels, scene canvas, and controls.
 - `css/style.css` handles desktop/mobile layout and presentation.
-- `js/game.js` currently contains the animal definitions, weighted selection, spawn timing, drawing functions, animation loop, zoom, and capture behaviour.
+- `js/settings.js` reads and writes one preference: whether curtains start raised.
+- `js/game.js` currently contains the animal definitions, weighted selection, opening reveal, spawn timing, drawing functions, animation loop, binoculars, and capture behaviour.
 - The canvas is resized to its displayed dimensions and uses a capped device pixel ratio.
 - Animal appearances are generated in the browser. There is no server-side spawn system.
 
@@ -46,7 +49,7 @@ Do not split files just for the sake of abstraction. Keep the current small prot
 
 ## Privacy and storage
 
-The application must not save player records. Do not introduce localStorage, sessionStorage, IndexedDB, cookies, database writes, or analytics. The only intentional output from Capture is a PNG download initiated by the user.
+The application must not save player records (sightings, captures, history, or profiles). The only stored preference is `ww_always_curtain_raised` in `localStorage` (default off): whether the window curtains start already raised. Do not introduce sessionStorage, IndexedDB, cookies, database writes, or analytics. The only intentional output from Capture is a PNG download initiated by the user.
 
 ## Hosting
 

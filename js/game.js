@@ -2498,11 +2498,42 @@
     }
   }
 
+  // Opening the window: the encounter is already in the clearing, not walking in from off-screen
+  function presentInFrame(group) {
+    const chasing = group.filter(c => c.state === 'flee' || c.fast);
+    if (chasing.length) {
+      const dir = chasing[0].dir || 1;
+      const lead = dir > 0 ? Math.max(...chasing.map(c => c.x)) : Math.min(...chasing.map(c => c.x));
+      const target = dir > 0 ? w * 0.42 : w * 0.58;
+      const shift = target - lead;
+      for (const c of chasing) c.x += shift;
+    }
+    for (const c of group) {
+      c.alpha = 1;
+      c.age = 0;
+      c.moving = false;
+      if (c.perform && !c.state) {
+        c.homeX = c.x;
+        c.homeY = c.y;
+        c.leaveAt = elapsed + (c.stay || rand(16, 24));
+        c.exitSide = c.perform === 'fight' ? (c.dir > 0 ? -1 : 1) : (Math.random() < 0.5 ? -1 : 1);
+        c.state = 'act';
+        c.pose = c.perform;
+        c.activity = 'perform';
+      } else if (!c.state) {
+        c.state = 'cross';
+        c.tx = (c.dir || 1) > 0 ? w + EDGE : -EDGE;
+        c.ty = c.y;
+      }
+    }
+  }
+
   function spawnEvent(forcedEv, opts = {}) {
     const ev = forcedEv || pickWeighted(events);
     const sc = Math.min(w / 850, 1.15);
     const group = ev.build(w, h, sc);
-    stageEventGroup(group, !!opts.longLife);
+    if (opts.inFrame) presentInFrame(group);
+    else stageEventGroup(group, !!opts.longLife);
     activeEvent = { name: ev.name, rarity: ev.rarity };
     creatures.push(...group);
     $('sightingHint').textContent = opts.testLabel || ev.hint;
@@ -2519,9 +2550,10 @@
     const count = spec.group ? Math.floor(rand(spec.group[0], spec.group[1] + 0.99)) : 1;
 
     // Behaviour mode: most ground animals linger; some simply pass through. Birds fly across.
-    const linger = !fly && (gallery || spec.binocularOnly || Math.random() < LINGER_CHANCE);
+    const inFrame = !!opts.inFrame;
+    const linger = !fly && (gallery || spec.binocularOnly || inFrame || Math.random() < LINGER_CHANCE);
     const side = Math.random() < 0.5 ? -1 : 1;                             // -1 enters from the left, 1 from the right
-    const fromBelow = linger && !gallery && Math.random() < 0.15;          // sometimes walk up out of the foreground
+    const fromBelow = linger && !gallery && !inFrame && Math.random() < 0.15; // sometimes walk up out of the foreground
     const exitRoll = Math.random();
     const exitSide = exitRoll < 0.4 ? -1 : exitRoll < 0.8 ? 1 : 2;          // 2 = leave downward into the vegetation
 
@@ -2561,33 +2593,41 @@
       const farX = side < 0 ? w + edgeOf(a) : -edgeOf(a);
 
       if (fly) {
-        a.x = startX;
         a.y = skyY + (i === 0 ? 0 : rand(-14, 14));
         a.state = 'cross';
         a.tx = farX;
         a.ty = a.y + skyDrift;
+        a.x = inFrame
+          ? clamp(rand(w * 0.16, w * 0.84) + (i - (count - 1) / 2) * 28, w * 0.08, w * 0.92)
+          : startX;
       } else if (linger) {
         a.homeX = clamp(homeX + (i - (count - 1) / 2) * rand(30, 44), w * 0.06, w * 0.94);
         a.homeY = groundY(homeY + (i === 0 ? 0 : rand(-14, 16)));
         a.tx = a.homeX;
         a.ty = a.homeY;
-        if (fromBelow) {
+        a.exitSide = exitSide;
+        a.leaveAt = elapsed + (inFrame ? stay : eta + stay) + i * rand(0.3, 1.4);
+        if (inFrame) {
+          // Already in the clearing when the curtains rise
+          a.x = a.homeX;
+          a.y = a.homeY;
+          beginAct(a);
+        } else if (fromBelow) {
           a.x = a.homeX + rand(-30, 30);
           a.y = h + 60 + lag * 0.6;
+          a.state = 'enter';
         } else {
           a.x = startX;
           a.y = groundY(a.homeY + rand(-10, 10));
+          a.state = 'enter';
         }
-        a.state = 'enter';
-        a.exitSide = exitSide;
-        a.leaveAt = elapsed + eta + stay + i * rand(0.3, 1.4);
       } else {
         // Pass straight through the clearing, drifting a little nearer or deeper as it goes
-        a.x = startX;
         a.y = groundY(homeY + (i === 0 ? 0 : rand(-14, 16)));
         a.state = 'cross';
         a.tx = farX;
         a.ty = groundY(a.y + depthDrift);
+        a.x = inFrame ? clamp(rand(w * 0.18, w * 0.82), w * 0.1, w * 0.9) : startX;
       }
       creatures.push(a);
     }
@@ -2609,6 +2649,27 @@
   function quietDelay() {
     const r = Math.random();
     return r < 0.78 ? rand(4, 12) : r < 0.95 ? rand(22, 40) : rand(60, 120);
+  }
+
+  // First look through the window: often quiet, sometimes wildlife is already there, rarely a special event
+  function openingReveal() {
+    const roll = Math.random();
+    if (roll < 0.40) {
+      $('sightingHint').textContent = 'Listen to the forest';
+      $('messageTitle').textContent = 'The forest is waking up';
+      $('messageText').textContent = 'You drew the curtains on a quiet clearing. Stay a while.';
+    } else if (roll < 0.88) {
+      spawnAnimal(pickWeighted(mainAnimals), { inFrame: true });
+    } else {
+      spawnEvent(undefined, { inFrame: true });
+      eventCooldown = rand(28, 45);
+    }
+    if (Math.random() < 0.05 && !creatures.some(c => c.predator)) {
+      spawnAnimal(pickWeighted(smallAnimals), { quiet: true, inFrame: true });
+    }
+    nextSpawn = rand(8, 14);
+    nextSmall = rand(12, 24);
+    wasEmpty = !hasMainAnimals();
   }
 
   function spawn() {
@@ -2874,6 +2935,7 @@
 
   // The lens follows the mouse, or a dragging finger. A finger sits low in the lens so it does not cover the view.
   function aimFromPointer(e) {
+    if (curtainsClosed) return;
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left;
     pointer.y = e.clientY - r.top;
@@ -2882,10 +2944,11 @@
     setAim(pointer.x, pointer.y - lift);
   }
 
-  $('binoculars').addEventListener('click', () => setBinoculars(!binoculars));
-  $('capture').addEventListener('click', capture);
+  $('binoculars').addEventListener('click', () => { if (!curtainsClosed) setBinoculars(!binoculars); });
+  $('capture').addEventListener('click', () => { if (!curtainsClosed) capture(); });
   canvas.addEventListener('pointermove', aimFromPointer);
   canvas.addEventListener('pointerdown', e => {
+    if (curtainsClosed) return;
     // Keep following the finger even if it slides off the scene
     if (binoculars && canvas.setPointerCapture) {
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* not supported for this pointer */ }
@@ -2898,10 +2961,78 @@
   }
   window.addEventListener('resize', resize);
   resize();
+
+  const settingsApi = window.WildlifeSettings || {
+    getAlwaysCurtainRaised: () => false,
+    setAlwaysCurtainRaised: () => {}
+  };
+  const sceneWrap = canvas.parentElement;
+  const alwaysRaised = settingsApi.getAlwaysCurtainRaised();
+  let curtainsClosed = !testMode && !alwaysRaised;
+
+  function setControlsLocked(locked) {
+    $('binoculars').disabled = locked;
+    $('capture').disabled = locked;
+  }
+
+  function openCurtains(skip) {
+    const curtain = $('curtain');
+    const finish = () => {
+      curtainsClosed = false;
+      curtain.setAttribute('aria-hidden', 'true');
+      setControlsLocked(false);
+    };
+    if (skip) {
+      sceneWrap.classList.add('curtains-skip');
+      sceneWrap.classList.add('curtains-open');
+      finish();
+      return;
+    }
+    const done = ev => {
+      if (ev && ev.propertyName && ev.propertyName !== 'transform') return;
+      curtain.removeEventListener('transitionend', done);
+      finish();
+    };
+    curtain.addEventListener('transitionend', done);
+    sceneWrap.classList.add('curtains-open');
+    // If the transition never fires, still unlock the window
+    setTimeout(() => { if (curtainsClosed) done(); }, 1600);
+  }
+
+  const settingsBtn = $('settingsBtn');
+  const settingsPanel = $('settingsPanel');
+  const alwaysBox = $('alwaysCurtainRaised');
+  alwaysBox.checked = alwaysRaised;
+  settingsBtn.addEventListener('click', () => {
+    const open = settingsPanel.hidden;
+    settingsPanel.hidden = !open;
+    settingsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  alwaysBox.addEventListener('change', () => {
+    settingsApi.setAlwaysCurtainRaised(alwaysBox.checked);
+    if (alwaysBox.checked) {
+      sceneWrap.classList.add('curtains-skip');
+      if (curtainsClosed) openCurtains(true);
+    }
+  });
+  document.addEventListener('click', e => {
+    if (settingsPanel.hidden) return;
+    if (e.target.closest('#settingsBtn') || e.target.closest('#settingsPanel')) return;
+    settingsPanel.hidden = true;
+    settingsBtn.setAttribute('aria-expanded', 'false');
+  });
+
   if (testMode) {
+    sceneWrap.classList.add('curtains-skip', 'curtains-open');
+    $('curtain').setAttribute('aria-hidden', 'true');
     const listLen = testMode === '1A' ? animals.length : events.length;
     testIndex = ((testIndex % listLen) + listLen) % listLen;
     showGalleryItem();
+  } else {
+    openingReveal();
+    setControlsLocked(curtainsClosed);
+    if (alwaysRaised) openCurtains(true);
+    else requestAnimationFrame(() => requestAnimationFrame(() => openCurtains(false)));
   }
   requestAnimationFrame(loop);
 

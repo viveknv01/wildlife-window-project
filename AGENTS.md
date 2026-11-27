@@ -15,7 +15,8 @@ The feeling should be peaceful, curious, atmospheric, and welcoming.
 - Use plain HTML, CSS, and vanilla JavaScript for the current prototype.
 - Use HTML Canvas for the animated scene.
 - Do not introduce Angular, React, Vue, a server, database, authentication, or a build system unless the project owner explicitly approves the change.
-- Do not persist player records. No accounts, collection history, scores, localStorage, IndexedDB, cookies, or remote player profiles.
+- Do not persist player records. No accounts, collection history, scores, IndexedDB, cookies, or remote player profiles.
+- One UI preference may use localStorage: whether the window curtains start already raised (`ww_always_curtain_raised`, default off). Do not store sightings, captures, or any other player data.
 - A capture may download a PNG to the user's device. Do not store a photo in an application database.
 - Do not add monetization, ads, competitive leaderboards, timers, penalties, or stressful mechanics without approval.
 - Do not replace the relaxing core loop with missions or mandatory progression.

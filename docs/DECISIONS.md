@@ -14,6 +14,7 @@ This document records decisions so contributors and AI agents do not accidentall
 | Hosting | GitHub Pages | Static hosting with no backend requirement |
 | Player records | Do not save | Explicit first-version requirement |
 | Capture | Download PNG on user action | Gives the player a keepsake without storing records |
+| Curtain preference | `localStorage` key `ww_always_curtain_raised` only | Remember whether curtains start raised. Default is off. No wildlife records. |
 | Backend | None | Not needed for the prototype |
 
 ## Change process

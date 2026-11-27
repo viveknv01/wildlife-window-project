@@ -21,13 +21,15 @@ Last updated: 2026-11-27
 - Binoculars: a toggle button raises a round lens that magnifies 2.2× and follows the mouse or a dragging finger; the rest of the window dims. This replaces the old whole-canvas zoom buttons
 - Capture downloads the current canvas as PNG and identifies either the active event or the nearest animal/herd. With the binoculars up, the photo keeps the round lens framing and only animals inside the lens are identified
 - Dev-only URL gallery for testing (not normal play): `?test=1A` cycles animals, `?test=1E` cycles events; optional `&i=N` starts at index N; tap scene or Capture to advance. Full index lists are in [`CONTENT_AND_RARITY.md`](CONTENT_AND_RARITY.md)
+- Opening curtains: on each visit the window starts covered and the fabric raises smoothly. The clearing may already hold wildlife (often empty, sometimes a normal group, and on a lucky roll a Rare or rarer event). Animals are placed in frame, not walking in from off-screen
+- Settings (footer): “Always raise curtains on open” is off by default and is the only value stored (`localStorage` key `ww_always_curtain_raised`). Sightings and captures are still not saved. The test gallery skips the curtain
 
 ## Known limitations
 
 - Animal art is procedural Canvas vector drawing rather than external sprite sheets.
 - No sound effects or ambient audio yet.
 - No actual simulated weather or time-of-day lighting transition; the clock label is a lightweight display.
-- No persistent collection, player history, or records (by design).
+- No persistent collection, player history, or records (by design). One curtain preference may be stored locally.
 - Rarity weights and behaviour settings are configured in `js/game.js`.
 - Sitting and grazing poses are simple (the body lowers or leans); only deer lower their neck. No species-specific eating animation yet.
 - Behaviour was checked with a headless simulation and in a desktop browser at narrow width; not yet tested on real phones. Binocular aiming by touch was checked with simulated touch events only.

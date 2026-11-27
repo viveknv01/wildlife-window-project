@@ -30,6 +30,9 @@
       </div>
       <div class="toast" id="toast" aria-live="polite"></div>
       <div class="capture-flash" id="flash"></div>
+      <div class="curtain" id="curtain" aria-hidden="false">
+        <div class="curtain-fabric" aria-hidden="true"></div>
+      </div>
     </section>
 
     <section class="control-panel">
@@ -47,9 +50,21 @@
     <footer class="footer">
       <div class="footer-note"><span class="tiny-leaf">❧</span> No rush. Just watch.</div>
       <div class="legend"><span><i class="legend-dot common"></i>Common</span><span><i class="legend-dot uncommon"></i>Uncommon</span><span><i class="legend-dot rare"></i>Rare</span></div>
-      <div class="footer-right">Prototype · Nothing is saved</div>
+      <div class="footer-right">
+        <div class="footer-settings">
+          <button class="settings-button" id="settingsBtn" type="button" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
+          <div class="settings-panel" id="settingsPanel" hidden>
+            <label class="settings-option" for="alwaysCurtainRaised">
+              <input type="checkbox" id="alwaysCurtainRaised">
+              <span>Always raise curtains on open</span>
+            </label>
+          </div>
+        </div>
+        <span>Prototype · No wildlife records saved</span>
+      </div>
     </footer>
   </main>
+  <script src="js/settings.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
