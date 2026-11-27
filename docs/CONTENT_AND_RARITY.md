@@ -72,12 +72,24 @@ Animals walk in from the left, the right, or up out of the foreground vegetation
 
 ### Gatherings
 
-There is no gameplay limit on how many species share the clearing (a cap of 16 animals exists only to protect performance). The busier the clearing, the less likely another group joins, so large gatherings are uncommon:
+Gathering rarity is a **label only** (sighting banner and capture toast). It does not change predator flee, hunting events, or other animal behaviour. Binoculars-only wildlife never counts. The final tier is the **higher** of the two tables below.
 
-| Animals in view | Rarity shown |
+**Species in view**
+
+| Distinct species | Rarity shown |
 |---|---|
 | 5 or more | Rare |
 | 8 or more | Very rare |
+
+**Animals in view (headcount)**
+
+| Animals | Rarity shown |
+|---|---|
+| 9 or more | Rare |
+| 16 or more | Very rare |
+| 30 or more | Legendary |
+
+There is no gameplay limit on how many species share the clearing. A soft animal cap (~36) exists only to protect performance, high enough that a Legendary 30+ gathering remains possible. The busier the clearing, the less likely another group joins, so large gatherings stay uncommon.
 
 The gathering rarity is used in the capture message when it is higher than the rarity of the nearest animal.
 
@@ -111,7 +123,7 @@ In the gallery each animal walks in from the side (visible after a few seconds),
 - **Rare**: Noticeably infrequent sightings or special behaviours.
 - **Very rare**: Memorable, exceptional solitary encounters.
 - **Ultra Rare**: Once-in-a-while sightings and extraordinary group moments.
-- **Legendary**: Signature dramatic wildlife spectacles.
+- **Legendary**: Signature dramatic wildlife spectacles, including a 30+ animal gathering.
 
 ## Current implementation
 

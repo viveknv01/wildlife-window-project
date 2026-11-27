@@ -293,10 +293,11 @@
 
   // ---- Behaviour settings (easy to tune) ----
   const LINGER_CHANCE = 0.65;   // ground animals that stop to graze/sit/drink; the rest simply pass through
-  const SOFT_CAP = 16;          // performance guard only, not a gameplay limit on species
+  const SOFT_CAP = 36;          // performance guard only; high enough that a 30+ Legendary gathering remains possible
   const EDGE = 100;             // off-screen staging distance for event groups
   const GROUND_TOP = 0.62, GROUND_BOT = 0.8;
   const RARITY_RANK = { 'Common': 0, 'Uncommon': 1, 'Rare': 2, 'Very rare': 3, 'Ultra Rare': 4, 'Legendary': 5 };
+  const GATHER_LABEL = [null, 'Rare', 'Very rare', 'Legendary'];
   // Activities each kind can choose while lingering (repeats make an activity more likely)
   const ACTIVITIES = {
     deer: ['graze', 'graze', 'graze', 'sit', 'rest', 'wait', 'drink', 'walk'],
@@ -336,6 +337,18 @@
   // What the player can actually see right now: inside the lens, or anywhere in the window without it
   const isSeen = a => binoculars ? inLens(a) : inView(a) && isShown(a);
   const hasMainAnimals = () => creatures.some(c => !c.binocularOnly);
+  // Gathering labels only — does not change predator flee, events, or spawn behaviour beyond soft crowd chance.
+  // Species: 5+ Rare, 8+ Very rare. Animals: 9+ Rare, 16+ Very rare, 30+ Legendary. Take the higher tier.
+  // Binoculars-only wildlife never counts.
+  function gatheringOf(list) {
+    const pool = list.filter(c => !c.binocularOnly);
+    const animalCount = pool.length;
+    const speciesCount = new Set(pool.map(c => c.name)).size;
+    const bySpecies = speciesCount >= 8 ? 2 : speciesCount >= 5 ? 1 : 0;
+    const byAnimals = animalCount >= 30 ? 3 : animalCount >= 16 ? 2 : animalCount >= 9 ? 1 : 0;
+    const tier = Math.max(bySpecies, byAnimals);
+    return { animalCount, speciesCount, tier, rarity: GATHER_LABEL[tier] };
+  }
   // Keep the lens far enough from the edges that it never looks past the painted scene
   function setAim(x, y) {
     const m = lensRadius() / BINOC_ZOOM;
@@ -2692,10 +2705,12 @@
     const spec = pickWeighted(mainAnimals);
     // No newcomers wander in on top of a hunting predator
     if (predatorHere && isPrey(spec)) return;
-    // The busier the clearing, the less likely another group joins, so 5+ is rare and 8+ very rare.
+    // The busier the clearing, the less likely another group joins (aligns with animal-count gathering tiers).
     // Predators and birds are less put off by a crowd, but stay within their rarity tier.
+    // Does not override predator flee or event rules.
     const n = ground.length;
-    const accept = n === 0 ? 1 : spec.fly ? 0.5 : spec.predator ? 0.4 : n < 5 ? 0.14 : n < 8 ? 0.06 : 0.03;
+    const accept = n === 0 ? 1 : spec.fly ? 0.5 : spec.predator ? 0.4
+      : n < 9 ? 0.14 : n < 16 ? 0.06 : n < 30 ? 0.03 : 0.015;
     if (Math.random() < accept) spawnAnimal(spec);
   }
 
@@ -2811,13 +2826,20 @@
     }
     lensFind = found;
 
-    // Busy clearings are special: 5+ animals in view is Rare, 8+ is Very rare
-    const inViewCount = creatures.filter(c => inView(c) && !c.binocularOnly).length;
-    const tier = inViewCount >= 8 ? 2 : inViewCount >= 5 ? 1 : 0;
+    // Busy clearings: species and animal-count tiers (see gatheringOf); binoculars-only excluded
+    const gather = gatheringOf(creatures.filter(c => inView(c)));
+    const tier = gather.tier;
     if (tier > gatherTier && !activeEvent && !testMode) {
-      $('sightingHint').textContent = tier === 2 ? 'The clearing is full of life' : 'A busy clearing';
-      $('messageTitle').textContent = (tier === 2 ? 'A great gathering · Very rare' : 'A lively gathering · Rare');
-      $('messageText').textContent = inViewCount + ' animals are sharing the view. Moments like this do not come often.';
+      const titles = {
+        1: 'A lively gathering · Rare',
+        2: 'A great gathering · Very rare',
+        3: 'An extraordinary gathering · Legendary'
+      };
+      $('sightingHint').textContent = tier === 3 ? 'Life everywhere in the clearing'
+        : tier === 2 ? 'The clearing is full of life' : 'A busy clearing';
+      $('messageTitle').textContent = titles[tier];
+      $('messageText').textContent = gather.animalCount + ' animals across ' + gather.speciesCount
+        + ' species are sharing the view. Moments like this do not come often.';
     }
     gatherTier = tier;
 
@@ -2885,7 +2907,8 @@
     const a = visible.sort(binoculars
       ? (x, y) => aimDist(x) - aimDist(y)
       : (x, y) => Math.abs(x.x - w / 2) - Math.abs(y.x - w / 2))[0];
-    const gathering = visible.length >= 8 ? 'Very rare' : visible.length >= 5 ? 'Rare' : null;
+    const gather = gatheringOf(visible);
+    const gathering = gather.rarity;
 
     const flash = $('flash');
     flash.classList.remove('active');
@@ -2902,9 +2925,10 @@
       $('messageTitle').textContent = 'Remarkable capture!';
       $('messageText').textContent = activeEvent.name + ' (' + activeEvent.rarity + '). Your photo has been downloaded.';
     } else if (a && gathering && RARITY_RANK[gathering] > (RARITY_RANK[a.rarity] || 0)) {
-      showToast('Captured: Gathering of ' + visible.length + ' animals · ' + gathering);
-      $('messageTitle').textContent = 'Lovely capture';
-      $('messageText').textContent = 'A ' + gathering.toLowerCase() + ' gathering of ' + visible.length + ' animals. Your photo has been downloaded.';
+      showToast('Captured: Gathering of ' + gather.animalCount + ' animals · ' + gather.speciesCount + ' species · ' + gathering);
+      $('messageTitle').textContent = gather.tier === 3 ? 'Remarkable capture!' : 'Lovely capture';
+      $('messageText').textContent = 'A ' + gathering.toLowerCase() + ' gathering of ' + gather.animalCount
+        + ' animals across ' + gather.speciesCount + ' species. Your photo has been downloaded.';
     } else if (a) {
       const sameKindCount = visible.filter(x => x.name === a.name).length;
       const label = sameKindCount > 1 ? a.name + ' (' + sameKindCount + ')' : a.name;
