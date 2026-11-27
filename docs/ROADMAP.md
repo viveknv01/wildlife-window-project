@@ -14,17 +14,17 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [x] PNG screenshot download
 - [x] Basic rarity weights
 - [x] Responsive browser layout
-- [ ] Improve natural-looking animal silhouettes and movement
+- [x] Improve natural-looking animal silhouettes and movement
 - [ ] Add gentle background ambience (only with properly licensed/original audio)
 - [ ] Test on real mobile browsers and fix issues
 
 ## Stage 2 — Better observation
 
-- [ ] More convincing animal movement and idle behaviours
-- [ ] Different movement styles per species
-- [ ] Better depth/occlusion so animals can hide behind foliage
+- [x] More convincing animal movement and idle behaviours
+- [x] Different movement styles per species
+- [x] Better depth/occlusion so animals can hide behind foliage
 - [ ] Optional animal sound cues
-- [ ] Better capture feedback and camera framing
+- [x] Better capture feedback and camera framing
 - [ ] Improve performance on lower-end phones
 
 ## Stage 3 — Environment variation
@@ -40,8 +40,8 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [ ] Animal awareness and disturbance reactions
 - [ ] Alarm calls
 - [ ] Species-specific habitat and time preferences
-- [ ] Group sightings and animal interactions
-- [ ] Carefully designed rare encounter events
+- [x] Group sightings and animal interactions
+- [x] Carefully designed rare encounter events
 
 ## Explicitly not planned yet
 
