@@ -14,11 +14,11 @@
     { name: 'Great Indian hornbill', kind: 'hornbill', sub: 'great', fly: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#232624' },
     { name: 'Indian grey hornbill', kind: 'hornbill', sub: 'grey', fly: true, rarity: 'Rare', weight: 3.5, scale: 0.78, color: '#7e8078' },
     { name: 'Ibis', kind: 'ibis', fly: true, rarity: 'Rare', weight: 3.5, scale: 0.8, color: '#3b3735' },
-    { name: 'Tiger', kind: 'tiger', rarity: 'Very rare', weight: 1.1, scale: 1.08, color: '#d17c32' },
-    { name: 'Leopard', kind: 'leopard', rarity: 'Very rare', weight: 1.1, scale: 0.98, color: '#c49348' },
+    { name: 'Tiger', kind: 'tiger', rarity: 'Very rare', weight: 1.1, scale: 1.22, color: '#d97b29' },
+    { name: 'Leopard', kind: 'leopard', rarity: 'Very rare', weight: 1.1, scale: 1.14, color: '#cfa04e' },
     { name: 'Asian Elephant Tusk', kind: 'elephant', tusks: true, rarity: 'Very rare', weight: 1.0, scale: 1.4, color: '#636860' },
     { name: 'Sloth Bear', kind: 'bear', rarity: 'Very rare', weight: 1.0, scale: 1.02, color: '#272322' },
-    { name: 'Black Leopard', kind: 'leopard', black: true, rarity: 'Ultra Rare', weight: 0.45, scale: 0.98, color: '#202126' }
+    { name: 'Black Leopard', kind: 'leopard', black: true, rarity: 'Ultra Rare', weight: 0.45, scale: 1.14, color: '#1b1d24' }
   ];
 
   const events = [
@@ -199,12 +199,12 @@
           {
             name: 'Leopard + Black Leopard', eventName: 'Leopard + Black Leopard', kind: 'leopard', black: false,
             rarity: 'Legendary', x, y, dir, phase: rand(0, 7),
-            scale: 1.0 * sc, alpha: 0, life, age: 0, speed: spd, color: '#c49348', isEvent: true
+            scale: 1.14 * sc, alpha: 0, life, age: 0, speed: spd, color: '#cfa04e', isEvent: true
           },
           {
             name: 'Leopard + Black Leopard', eventName: 'Leopard + Black Leopard', kind: 'leopard', black: true,
-            rarity: 'Legendary', x: x - dir * 48, y: y - 10, dir, phase: rand(0, 7),
-            scale: 0.98 * sc, alpha: 0, life, age: 0, speed: spd, color: '#202126', isEvent: true
+            rarity: 'Legendary', x: x - dir * 56, y: y - 11, dir, phase: rand(0, 7),
+            scale: 1.12 * sc, alpha: 0, life, age: 0, speed: spd, color: '#1b1d24', isEvent: true
           }
         ];
       }
@@ -780,114 +780,356 @@
     ctx.restore();
   }
 
-  function drawTiger(a, t) {
-    drawShadow(30, 5.5, 23);
-    drawLegs([-19, -11, 11, 18], 7, 22, t, a.phase, '#b86823', 4.2);
+  function drawBigCatLeg(hipX, hipY, isHind, swing, mainColor, pawColor) {
+    const kneeX = hipX + (isHind ? -3 + swing * 0.45 : 2 + swing * 0.5);
+    const kneeY = hipY + 10;
+    const ankleX = hipX + (isHind ? -5 + swing * 0.85 : swing * 0.95);
+    const ankleY = hipY + 19;
+    const pawX = ankleX + 2.8;
 
-    // Long ringed tail
-    ctx.strokeStyle = a.color;
-    ctx.lineWidth = 4.5;
+    ctx.fillStyle = mainColor;
     ctx.beginPath();
-    ctx.moveTo(-25, -2);
-    ctx.quadraticCurveTo(-42, 4, -45, -10 + Math.sin(t * 3 + a.phase) * 3);
+    ctx.moveTo(hipX - (isHind ? 6.5 : 5.2), hipY);
+    ctx.quadraticCurveTo(kneeX - 4.5, kneeY, ankleX - 2.6, ankleY);
+    ctx.lineTo(ankleX + 2.8, ankleY);
+    ctx.quadraticCurveTo(kneeX + 4.8, kneeY, hipX + (isHind ? 6.5 : 5.2), hipY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Heavy feline paw
+    ctx.fillStyle = pawColor || mainColor;
+    ctx.beginPath();
+    ctx.ellipse(pawX, ankleY + 0.5, 4.4, 2.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function traceBigCatBody(ctx, isTiger) {
+    ctx.beginPath();
+    // Start at base of neck / chest
+    ctx.moveTo(27, -7);
+    // Powerful shoulder hump
+    ctx.bezierCurveTo(21, -15, 12, -16, 4, -13.5);
+    // Muscular back dipping slightly then rising to croup/haunches
+    ctx.bezierCurveTo(-6, -12, -17, -14.5, -26, -11);
+    // Rounded hindquarters down to rear thigh
+    ctx.bezierCurveTo(-32, -8, -33, 1, -27, 8);
+    // Tucked inguinal flank & deep ribcage/chest
+    ctx.bezierCurveTo(-18, 6.5, -10, 9.5, 4, 11);
+    ctx.bezierCurveTo(15, 11.5, 24, 9.5, 28, 3);
+    ctx.closePath();
+  }
+
+  function drawTiger(a, t) {
+    const stride = Math.sin(t * 5.8 + a.phase);
+    const strideOpp = Math.sin(t * 5.8 + a.phase + Math.PI);
+    const sway = Math.sin(t * 2.6 + a.phase) * 2.2;
+
+    drawShadow(38, 6, 26);
+
+    // Far-side legs (darker shade for depth)
+    drawBigCatLeg(-21, 5, true, strideOpp * 6, '#a95819', '#d8c5a8');
+    drawBigCatLeg(16, 5, false, stride * 6, '#a95819', '#d8c5a8');
+
+    // Long, low-slung S-curve tiger tail with black rings
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = a.color;
+    ctx.lineWidth = 5.2;
+    ctx.beginPath();
+    ctx.moveTo(-28, -7);
+    ctx.bezierCurveTo(-40, -3, -46, 8, -56, 3 + sway);
     ctx.stroke();
 
-    // Muscular torso
-    ctx.fillStyle = a.color;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 28, 12.5, -0.02, 0, Math.PI * 2);
-    ctx.fill();
-
-    // White underbelly
-    ctx.fillStyle = '#f3e7d2';
-    ctx.beginPath();
-    ctx.ellipse(0, 7.5, 21, 4, 0, 0, Math.PI);
-    ctx.fill();
-
-    // Head & ruff
-    ctx.fillStyle = a.color;
-    ctx.beginPath();
-    ctx.arc(25, -7, 9.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#f3e7d2';
-    ctx.beginPath();
-    ctx.arc(27, -4, 5.5, 0, Math.PI);
-    ctx.fill();
-
-    // Ears
-    ctx.fillStyle = '#231d19';
-    ctx.beginPath();
-    ctx.arc(21, -15, 3.2, 0, Math.PI * 2);
-    ctx.arc(27, -15, 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Vertical black stripes
-    ctx.strokeStyle = '#1f1814';
-    ctx.lineWidth = 2.2;
-    for (let sx = -18; sx <= 14; sx += 5.5) {
+    // Tail rings & black tip
+    ctx.strokeStyle = '#1a1411';
+    ctx.lineWidth = 3.2;
+    for (const [tx, ty] of [[-35, -3.5], [-41, 0.5], [-47, 3.5], [-52, 3.5 + sway * 0.7]]) {
       ctx.beginPath();
-      ctx.moveTo(sx, -11);
-      ctx.quadraticCurveTo(sx - 2, -2, sx + 1, 6);
+      ctx.moveTo(tx, ty - 2.2);
+      ctx.lineTo(tx - 1.5, ty + 2.4);
       ctx.stroke();
     }
+    ctx.fillStyle = '#1a1411';
+    ctx.beginPath();
+    ctx.arc(-56, 3 + sway, 2.8, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Eye & nose
-    ctx.fillStyle = '#e8c85b';
-    ctx.beginPath();
-    ctx.arc(28, -9, 1.5, 0, Math.PI * 2);
+    // Anatomical big-cat torso (clipped for underbelly & organic stripes)
+    ctx.save();
+    traceBigCatBody(ctx, true);
+    ctx.fillStyle = a.color;
     ctx.fill();
-    ctx.fillStyle = '#241b18';
+    ctx.clip();
+
+    // Subtle dorsal shading
+    ctx.fillStyle = '#bd631c';
+    ctx.fillRect(-35, -17, 70, 6);
+
+    // Cream white underbelly, chest & inner flank
+    ctx.fillStyle = '#f6ecda';
     ctx.beginPath();
-    ctx.arc(33.5, -6, 1.6, 0, Math.PI * 2);
+    ctx.moveTo(-28, 7);
+    ctx.quadraticCurveTo(-8, 3, 12, 4.5);
+    ctx.quadraticCurveTo(24, 4, 30, 0);
+    ctx.lineTo(30, 14);
+    ctx.lineTo(-30, 14);
+    ctx.closePath();
     ctx.fill();
+
+    // Organic curved & forked tiger stripes across haunches, ribs, and shoulders
+    ctx.strokeStyle = '#18120f';
+    ctx.lineWidth = 2.3;
+    ctx.lineCap = 'round';
+    const stripes = [
+      [-24, -12, -27, -2, -23, 6],
+      [-19, -13, -21, -3, -18, 5],
+      [-14, -13, -15, -1, -12, 7],
+      [-8, -13, -10, -2, -7, 8],
+      [-3, -13, -4, -1, -1, 8],
+      [3, -14, 1, -2, 4, 8],
+      [9, -15, 7, -3, 10, 7],
+      [15, -15, 13, -4, 15, 6],
+      [20, -13, 19, -4, 21, 4]
+    ];
+    for (const [x0, y0, cx, cy, x1, y1] of stripes) {
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(cx, cy, x1, y1);
+      ctx.stroke();
+    }
+    // Forked branches on select rib stripes
+    for (const [fx, fy, tx, ty] of [[-15, -3, -11, 5], [-4, -2, 0, 5], [7, -4, 11, 4]]) {
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Near-side muscular legs with white paws
+    drawBigCatLeg(-20, 5, true, stride * 6.5, a.color, '#f5ebd8');
+    drawBigCatLeg(18, 5, false, strideOpp * 6.5, a.color, '#f5ebd8');
+
+    // Leg stripes on upper thigh & foreleg
+    ctx.strokeStyle = '#18120f';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-23, 8); ctx.lineTo(-17, 10);
+    ctx.moveTo(-22, 12); ctx.lineTo(-17, 13.5);
+    ctx.moveTo(15, 9); ctx.lineTo(20, 10.5);
+    ctx.stroke();
+
+    // Powerful neck & sculpted feline head (not a round house-cat circle)
+    const headBob = Math.sin(t * 5.8 + a.phase) * 0.9;
+    ctx.save();
+    ctx.translate(27, -8 + headBob);
+
+    // Rounded black ears with white tiger ear-spots
+    ctx.fillStyle = '#18120f';
+    ctx.beginPath();
+    ctx.arc(-4, -9.5, 3.6, 0, Math.PI * 2);
+    ctx.arc(2.5, -9, 3.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f6ecda';
+    ctx.beginPath();
+    ctx.arc(-4, -9.5, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Skull, forward-jutting muzzle, and strong jaw
+    ctx.fillStyle = a.color;
+    ctx.beginPath();
+    ctx.moveTo(-8, -5);
+    ctx.bezierCurveTo(-5, -10.5, 4, -10, 8, -5.5);
+    // Bridge of nose to snout tip
+    ctx.lineTo(14.5, -2);
+    // Upper lip & muzzle
+    ctx.quadraticCurveTo(15, 2.5, 11, 3.5);
+    // Chin & cheek ruff
+    ctx.quadraticCurveTo(6, 5, 1, 5.5);
+    ctx.quadraticCurveTo(-6, 6, -8, 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // White cheek ruff, muzzle pad & eyebrow patch
+    ctx.fillStyle = '#f6ecda';
+    ctx.beginPath();
+    ctx.moveTo(-3, 0.5);
+    ctx.quadraticCurveTo(4, -0.5, 12.5, 0);
+    ctx.quadraticCurveTo(13, 3.5, 8, 4.5);
+    ctx.quadraticCurveTo(0, 6.5, -5, 3.5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(4.5, -5.5, 2.2, 1.1, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cheek & forehead stripes
+    ctx.strokeStyle = '#18120f';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-2, -7.5); ctx.lineTo(1, -4.5);
+    ctx.moveTo(-4, -1); ctx.quadraticCurveTo(-1, 1.5, 2, 3.5);
+    ctx.moveTo(-1, -1.5); ctx.quadraticCurveTo(2, 1, 5, 2.8);
+    ctx.stroke();
+
+    // Fierce amber eye with dark feline liner
+    ctx.fillStyle = '#18120f';
+    ctx.beginPath();
+    ctx.ellipse(5, -3.5, 2.1, 1.5, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f5ca48';
+    ctx.beginPath();
+    ctx.arc(5.1, -3.5, 1.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pinkish-dark tiger nose leather
+    ctx.fillStyle = '#2b1d19';
+    ctx.beginPath();
+    ctx.moveTo(14.5, -2);
+    ctx.lineTo(12, -0.5);
+    ctx.lineTo(13.5, 1);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
   }
 
   function drawLeopard(a, t) {
     const isBlack = !!a.black;
-    drawShadow(27, 5, 22);
-    drawLegs([-17, -10, 10, 17], 7, 21, t, a.phase, isBlack ? '#17181c' : '#a67936', 3.8);
+    const stride = Math.sin(t * 6.2 + a.phase);
+    const strideOpp = Math.sin(t * 6.2 + a.phase + Math.PI);
+    const sway = Math.sin(t * 2.4 + a.phase) * 2.5;
 
-    // Long curved tail
+    drawShadow(35, 5.5, 25);
+
+    const farLegColor = isBlack ? '#101217' : '#9e7432';
+    const pawColor = isBlack ? '#232630' : '#dfc18b';
+
+    // Far-side legs
+    drawBigCatLeg(-20, 5, true, strideOpp * 6, farLegColor, pawColor);
+    drawBigCatLeg(16, 5, false, stride * 6, farLegColor, pawColor);
+
+    // Long, heavy, low-slung leopard balance tail (sweeps down then curls up at tip)
+    ctx.lineCap = 'round';
     ctx.strokeStyle = a.color;
-    ctx.lineWidth = 4.2;
+    ctx.lineWidth = 4.8;
     ctx.beginPath();
-    ctx.moveTo(-24, 0);
-    ctx.quadraticCurveTo(-43, -4, -41, -18 + Math.sin(t * 2.5 + a.phase) * 3);
+    ctx.moveTo(-27, -6);
+    ctx.bezierCurveTo(-39, -1, -46, 9, -56, 1 + sway);
     ctx.stroke();
 
-    // Sleek body & head
+    // Pale underside near tail tip on golden leopard, dark tip on both
+    ctx.fillStyle = isBlack ? '#0d0e12' : '#261b12';
+    ctx.beginPath();
+    ctx.arc(-56, 1 + sway, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sleek, low-slung panthera body contour
+    ctx.save();
+    traceBigCatBody(ctx, false);
     ctx.fillStyle = a.color;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 26, 11.5, -0.04, 0, Math.PI * 2);
     ctx.fill();
+    ctx.clip();
 
-    ctx.beginPath();
-    ctx.arc(24, -7, 8.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Rounded ears
-    ctx.beginPath();
-    ctx.arc(20, -14, 3, 0, Math.PI * 2);
-    ctx.arc(25, -14, 2.8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Rosettes (subtle ghost rosettes on black leopard, bold on golden leopard)
-    ctx.strokeStyle = isBlack ? '#32353d' : '#3d2b18';
-    ctx.lineWidth = 1.6;
-    for (let i = 0; i < 11; i++) {
-      const rx = -17 + (i % 6) * 6.5;
-      const ry = -4 + Math.floor(i / 6) * 6.5;
+    if (isBlack) {
+      // Sleek slate-blue muscle sheen along back and shoulder of Black Leopard
+      ctx.fillStyle = '#2b303c';
       ctx.beginPath();
-      ctx.arc(rx, ry, 1.7, 0.3, Math.PI * 1.85);
-      ctx.stroke();
+      ctx.ellipse(-2, -10, 26, 4.5, -0.04, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Warm tawny dorsal tone & pale cream belly on Indian Leopard
+      ctx.fillStyle = '#b98538';
+      ctx.fillRect(-34, -16, 68, 5);
+      ctx.fillStyle = '#f2e4c6';
+      ctx.beginPath();
+      ctx.ellipse(-2, 9.5, 25, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    // Gleaming eyes (especially striking on black leopard)
-    ctx.fillStyle = isBlack ? '#d9e368' : '#e0be58';
+    // Natural staggered leopard rosettes (broken dark rings around warm centers)
+    const rosettes = [
+      [-22, -6], [-16, -9], [-15, -2], [-9, -7], [-8, 0],
+      [-2, -9], [-1, -2], [5, -8], [6, -1], [12, -9],
+      [13, -2], [19, -7], [18, 0], [-19, 2], [-4, 4], [9, 4]
+    ];
+    for (const [rx, ry] of rosettes) {
+      ctx.fillStyle = isBlack ? '#14161c' : '#8f5d22';
+      ctx.beginPath();
+      ctx.arc(rx, ry, 2.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = isBlack ? '#0b0c10' : '#24180e';
+      ctx.lineWidth = 1.45;
+      ctx.beginPath();
+      ctx.arc(rx, ry, 2.2, 0.2, Math.PI * 1.45);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(rx, ry, 2.2, Math.PI * 1.65, Math.PI * 2.05);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Near-side muscular legs
+    drawBigCatLeg(-19, 5, true, stride * 6.2, a.color, pawColor);
+    drawBigCatLeg(17, 5, false, strideOpp * 6.2, a.color, pawColor);
+
+    // Solid spots on upper legs
+    ctx.fillStyle = isBlack ? '#0b0c10' : '#24180e';
+    for (const [sx, sy] of [[-21, 9], [-18, 12], [-20, 15], [16, 9], [18, 12], [17, 15]]) {
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Sculpted panthera head with forward muzzle & jaw
+    const headBob = Math.sin(t * 6.2 + a.phase) * 0.8;
+    ctx.save();
+    ctx.translate(27, -7.5 + headBob);
+
+    // Rounded ears
+    ctx.fillStyle = isBlack ? '#0e1014' : '#261a10';
     ctx.beginPath();
-    ctx.arc(27, -8.5, 1.6, 0, Math.PI * 2);
+    ctx.arc(-4, -8.8, 3.2, 0, Math.PI * 2);
+    ctx.arc(2, -8.5, 3, 0, Math.PI * 2);
     ctx.fill();
+
+    // Feline skull, elongated snout & jaw
+    ctx.fillStyle = a.color;
+    ctx.beginPath();
+    ctx.moveTo(-8, -4.5);
+    ctx.bezierCurveTo(-5, -9.8, 4, -9.2, 8, -5);
+    ctx.lineTo(14, -1.5);
+    ctx.quadraticCurveTo(14.5, 2.5, 10.5, 3.2);
+    ctx.quadraticCurveTo(5, 4.2, -1, 3.8);
+    ctx.quadraticCurveTo(-6, 3.8, -8, 1);
+    ctx.closePath();
+    ctx.fill();
+
+    if (!isBlack) {
+      ctx.fillStyle = '#f2e4c6';
+      ctx.beginPath();
+      ctx.ellipse(9, 1.8, 4.2, 1.8, -0.05, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Piercing golden-green panther eye
+    ctx.fillStyle = '#0e0d0c';
+    ctx.beginPath();
+    ctx.ellipse(5, -3.2, 2.1, 1.45, -0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isBlack ? '#dce85a' : '#e5c44e';
+    ctx.beginPath();
+    ctx.arc(5.1, -3.2, 1.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Nose tip
+    ctx.fillStyle = '#1c1513';
+    ctx.beginPath();
+    ctx.arc(13.2, -1, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
   function drawBear(a, t) {
