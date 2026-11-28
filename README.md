@@ -10,7 +10,7 @@ This repository contains the playable first prototype and the product/technical 
 
 - One illustrated jungle environment and one window view
 - Morning/daytime atmosphere
-- 25 animal/bird entries (with small herds for deer, gaur, and hares, a rare lone gaur bull, and wild dog packs), including 7 animals that are only visible through the binoculars or the camera (two babblers, two mongooses, two pittas, and a perched Malabar giant squirrel)
+- 27 animal/bird entries (with small herds for deer, gaur, hares, and peahens, a rare lone gaur bull, and wild dog packs), including 8 animals that are only visible through the binoculars or the camera (two babblers, two mongooses, two pittas, a perched Malabar giant squirrel, and a perched Orange-headed thrush)
 - 10 special wildlife encounter events (Common, Rare, Very rare, Ultra Rare, and Legendary)
 - Animals walk in and out, linger to graze, drink, or rest, and run from predators
 - Random appearances and simple movement

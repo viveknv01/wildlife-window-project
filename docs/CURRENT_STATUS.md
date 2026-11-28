@@ -9,14 +9,14 @@ Last updated: 2026-11-28
 - The still parts of the forest are painted once per resize into an off-screen canvas; moving parts (pool shimmer, light shafts, motes, foliage sway) are drawn every frame
 - One window view
 - Morning/daytime status label
-- 25 animal/bird definitions across Common, Uncommon, Rare, Very rare, and Ultra Rare tiers, including Wild Dog packs, the Indian hare, and the Indian muntjac in the clearing
-- 7 of these are seen only through the binoculars or the camera: Jungle babbler, Large grey babbler, Indian grey mongoose, Ruddy mongoose, Indian pitta, Hooded pitta, and a perched Malabar giant squirrel in the canopy
+- 27 animal/bird definitions across Common, Uncommon, Rare, Very rare, and Ultra Rare tiers, including Wild Dog packs, the Indian hare, Indian peahens in groups of 1–3, and the Indian muntjac in the clearing
+- 8 of these are seen only through the binoculars or the camera: Jungle babbler, Large grey babbler, Indian grey mongoose, Ruddy mongoose, Indian pitta, Hooded pitta, a perched Malabar giant squirrel, and a perched Orange-headed thrush in the canopy
 - Natural small-herd spawning for Spotted deer, Sambar deer, and Indian Gaur, plus a rare solitary Gaur bull
 - 10 special wildlife events (Common, Rare, Very rare, Ultra Rare, and Legendary), including a peacock with peahens, a hornbill pair, dancing peacock, 10+ elephant herds, sloth bear with cub, ibis flocks, sparring tuskers, dual leopards, and Wild Dog Pack Hunting
 - Natural behaviour: animals walk in and out of the scene (no fades); most linger to graze, drink at a small pool, sit, rest, or stand, and some simply pass through
 - Predator reactions: prey run when a tiger, leopard, black leopard, or wild dog appears; birds, peafowl, and tuskers stay
 - Several species can share the clearing; gathering labels use species count (5+ Rare, 8+ Very rare) and animal headcount (9+ Rare, 16+ Very rare, 30+ Legendary), taking the higher tier; binoculars-only wildlife is excluded; predator flee and events are unchanged
-- Deliberate quiet periods, with rare longer empty spells (up to about 40 s, very rarely up to about 120 s)
+- Deliberate quiet periods, with rare longer empty spells (up to about 40 s, very rarely up to about 70 s)
 - Detailed procedural Canvas illustrations and animations per species (walking legs, stripes/rosettes/spots, gaur white stockings and horns, hornbill casque, curved ibis bill, peacock fanned train), with shaded coats, soft ground shadows, darker far-side legs, hooves, eye highlights, whiskers, fur, and skin folds
 - Binoculars: a toggle button raises a round lens that magnifies 2.2× and follows the mouse or a dragging finger; the rest of the window dims
 - Camera: a toggle raises a rectangular viewfinder with a fully black surround, zoom steps from 1.4× to 3.0×, and the same aim control. Binoculars-only wildlife shows inside the frame. Capture while the camera is up downloads only the viewfinder

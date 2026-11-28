@@ -23,6 +23,7 @@
     { name: 'Indian Gaur', kind: 'gaur', rarity: 'Common', weight: 18, scale: 1.15, color: '#332822', group: [2, 4] },
     { name: 'Sambar deer', kind: 'deer', sub: 'sambar', rarity: 'Uncommon', weight: 11, scale: 1.12, color: '#6e4e37', group: [2, 3] },
     { name: 'Indian peacock', kind: 'peacock', rarity: 'Uncommon', weight: 10, scale: 0.96, color: '#1b6d72' },
+    { name: 'Indian peahen', kind: 'peacock', hen: true, rarity: 'Common', weight: 14, scale: 0.88, color: '#8a6a3e', group: [1, 3] },
     { name: 'Asian Elephant', kind: 'elephant', rarity: 'Rare', weight: 4, scale: 1.32, color: '#6b7068' },
     { name: 'Gaur bull', kind: 'gaur', bull: true, rarity: 'Rare', weight: 2.5, scale: 1.32, color: '#231b17' },
     { name: 'Great Indian hornbill', kind: 'hornbill', sub: 'great', fly: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#232624' },
@@ -43,7 +44,8 @@
     { name: 'Indian muntjac', kind: 'deer', sub: 'muntjac', rarity: 'Uncommon', weight: 8, scale: 0.8, color: '#7a4528', group: [1, 2] },
     { name: 'Ruddy mongoose', kind: 'mongoose', binocularOnly: true, rarity: 'Uncommon', weight: 4, scale: 0.62, speedMul: 1.4, color: '#b65a32' },
     { name: 'Large grey babbler', kind: 'smallBird', sub: 'greyBabbler', binocularOnly: true, rarity: 'Common', weight: 6, scale: 0.86, speedMul: 0.85, color: '#8a8d90', group: [2, 4] },
-    { name: 'Hooded pitta', kind: 'smallBird', sub: 'hoodedPitta', binocularOnly: true, rarity: 'Rare', weight: 1.2, scale: 0.72, speedMul: 0.9, color: '#2f8a46' }
+    { name: 'Hooded pitta', kind: 'smallBird', sub: 'hoodedPitta', binocularOnly: true, rarity: 'Rare', weight: 1.2, scale: 0.72, speedMul: 0.9, color: '#2f8a46' },
+    { name: 'Orange-headed thrush', kind: 'smallBird', sub: 'orangeThrush', binocularOnly: true, perch: true, rarity: 'Uncommon', weight: 3.5, scale: 0.72, color: '#b86a32' }
   ];
   // hide: true drops a species from spawn and the test gallery. Larger animals use the regular table; small wildlife has its own quiet schedule.
   const playable = animals.filter(a => !a.hide);
@@ -311,7 +313,7 @@
     {
       name: 'Peafowl in the clearing',
       rarity: 'Common',
-      weight: 6,
+      weight: 10,
       hint: 'A peacock with peahens in the grass',
       title: 'Peafowl together',
       text: 'A peacock stands in the clearing with one or more peahens.',
@@ -348,6 +350,7 @@
   let galleryHoldUntil = 0;
 
   let w = 900, h = 520, dpr = 1, last = 0, creatures = [], nextSpawn = 2.2, nextSmall = 5, elapsed = 0, toastTimer = 0, wind = 0;
+  let perchTrees = [];
   let activeEvent = null;
   let eventCooldown = 0;
   let pointer = { x: 0, y: 0 };
@@ -633,6 +636,10 @@
         top: h * (0.2 + hash(i + 110) * 0.07)
       });
     }
+    perchTrees = trees.map((tr, i) => {
+      const r = h * (0.095 + hash(i + 130) * 0.03);
+      return { x: tr.x, y: tr.top + h * 0.02 + r * 0.38, r };
+    });
     trunk(g, w * 0.012, h * 0.65, -10, Math.max(12, h * 0.05), '#343b2c', 51);
     trunk(g, w * 0.99, h * 0.665, -10, Math.max(12, h * 0.045), '#3a3a2b', 67);
     trees.forEach((tr, i) => trunk(g, tr.x, groundTop(tr.x) + h * 0.025, tr.top, tr.wd, i % 2 ? '#4f4636' : '#434c39', i * 7 + 200));
@@ -2347,17 +2354,35 @@
     ctx.restore();
   }
 
+  function drawPerchBranch() {
+    ctx.strokeStyle = '#4a3b2c';
+    ctx.lineWidth = 3.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-18, 9);
+    ctx.quadraticCurveTo(0, 13, 20, 8);
+    ctx.stroke();
+    ctx.strokeStyle = '#6a5640';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-14, 8.2);
+    ctx.quadraticCurveTo(2, 11, 16, 7.6);
+    ctx.stroke();
+  }
+
   function drawSmallBird(a, t) {
-    // Jungle babbler, large grey babbler, Indian pitta, or hooded pitta
+    // Jungle babbler, large grey babbler, Indian pitta, hooded pitta, or orange-headed thrush
     const pitta = a.sub === 'pitta';
     const hooded = a.sub === 'hoodedPitta';
     const greyBabbler = a.sub === 'greyBabbler';
+    const thrush = a.sub === 'orangeThrush';
     const shortTail = pitta || hooded;
     const hop = a.moving ? Math.abs(Math.sin(t * 9 + a.phase)) * 2.6 : 0;
     const peck = a.headDrop ? (Math.sin(t * 6 + a.phase) > 0 ? 3 : 0.8) : 0;
     const flick = Math.sin(t * 4 + a.phase) * 0.8;
     const body = a.color;
-    drawShadow(6, 1.4, 6.5);
+    if (a.perch) drawPerchBranch();
+    else drawShadow(6, 1.4, 6.5);
     ctx.translate(0, -hop);
 
     // Thin legs and toes
@@ -2370,7 +2395,7 @@
     ctx.stroke();
 
     // Tail: long and loose on babblers, a short stub on pittas
-    ctx.fillStyle = pitta ? '#2c5f8a' : hooded ? '#1f5a32' : greyBabbler ? '#6e7378' : '#6b6054';
+    ctx.fillStyle = pitta ? '#2c5f8a' : hooded ? '#1f5a32' : greyBabbler ? '#6e7378' : thrush ? '#5c4a32' : '#6b6054';
     ctx.beginPath();
     ctx.moveTo(-4, -0.8);
     ctx.lineTo(shortTail ? -7.5 : -11.5, (shortTail ? 1.4 : 2) + flick);
@@ -2383,11 +2408,11 @@
     ctx.beginPath();
     ctx.ellipse(0, 0, 5.6, 4, -0.2, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = pitta ? '#e0b673' : hooded ? '#d7c48a' : greyBabbler ? '#d5d8dc' : '#b7a78d';
+    ctx.fillStyle = pitta ? '#e0b673' : hooded ? '#d7c48a' : greyBabbler ? '#d5d8dc' : thrush ? '#e8c07a' : '#b7a78d';
     ctx.beginPath();
     ctx.ellipse(0.8, 1.5, 4.3, 2.3, -0.15, 0, Math.PI);
     ctx.fill();
-    ctx.fillStyle = pitta ? '#3f7a45' : hooded ? '#24723c' : greyBabbler ? '#9aa0a6' : '#73685a';
+    ctx.fillStyle = pitta ? '#3f7a45' : hooded ? '#24723c' : greyBabbler ? '#9aa0a6' : thrush ? '#6e7a45' : '#73685a';
     ctx.beginPath();
     ctx.ellipse(-1.2, -0.4, 3.8, 2.3, 0.15, 0, TAU);
     ctx.fill();
@@ -2406,7 +2431,7 @@
     ctx.save();
     ctx.translate(4.6, -3 + peck);
     ctx.rotate(peck * 0.12);
-    ctx.fillStyle = pitta ? '#b58a4d' : hooded ? '#1a1c1e' : greyBabbler ? '#7e848a' : '#93877a';
+    ctx.fillStyle = pitta ? '#b58a4d' : hooded ? '#1a1c1e' : greyBabbler ? '#7e848a' : thrush ? '#d4783a' : '#93877a';
     ctx.beginPath();
     ctx.arc(0, 0, 2.9, 0, TAU);
     ctx.fill();
@@ -2453,19 +2478,7 @@
     const nibble = eat ? Math.abs(Math.sin(t * 6.2 + a.phase)) : 0;
     const sway = Math.sin(t * 1.5 + a.phase);
 
-    ctx.strokeStyle = '#4a3b2c';
-    ctx.lineWidth = 3.4;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-18, 9);
-    ctx.quadraticCurveTo(0, 13, 20, 8);
-    ctx.stroke();
-    ctx.strokeStyle = '#6a5640';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(-14, 8.2);
-    ctx.quadraticCurveTo(2, 11, 16, 7.6);
-    ctx.stroke();
+    drawPerchBranch();
 
     ctx.save();
     ctx.translate(-4, 0);
@@ -2828,7 +2841,14 @@
 
     if (spec.perch) {
       const stay = gallery ? 40 : rand(18, 36);
+      const seats = perchTrees.slice();
+      for (let i = seats.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = seats[i]; seats[i] = seats[j]; seats[j] = tmp;
+      }
       for (let i = 0; i < count; i++) {
+        const tree = seats[i % Math.max(1, seats.length)];
+        const spread = tree ? tree.r * 0.28 : 0;
         creatures.push({
           ...spec,
           phase: rand(0, 7),
@@ -2840,8 +2860,10 @@
           state: 'perch',
           activity: 'eat',
           actTimer: rand(3, 7),
-          x: clamp(rand(w * 0.16, w * 0.82) + (i - (count - 1) / 2) * 36, w * 0.1, w * 0.9),
-          y: rand(h * 0.2, h * 0.4),
+          x: tree
+            ? clamp(tree.x + rand(-spread, spread), w * 0.08, w * 0.92)
+            : clamp(rand(w * 0.16, w * 0.82) + (i - (count - 1) / 2) * 36, w * 0.1, w * 0.9),
+          y: tree ? tree.y + rand(-h * 0.012, h * 0.018) : rand(h * 0.2, h * 0.4),
           leaveAt: elapsed + stay
         });
       }
@@ -2948,10 +2970,10 @@
     $('messageText').textContent = opts.testHint || ('Take your time. Can you spot the ' + spec.name.toLowerCase() + groupNote + '?');
   }
 
-  // Quiet gaps: usually short; sometimes a rare long hush (up to ~40s), very rarely up to ~120s
+  // Quiet gaps: usually short; sometimes a rare long hush (up to ~40s), very rarely up to ~70s
   function quietDelay() {
     const r = Math.random();
-    return r < 0.78 ? rand(4, 12) : r < 0.95 ? rand(22, 40) : rand(60, 120);
+    return r < 0.78 ? rand(4, 12) : r < 0.95 ? rand(22, 40) : rand(45, 70);
   }
 
   // First look through the window: often quiet, sometimes wildlife is already there, rarely a special event
@@ -3191,7 +3213,7 @@
       if (creatures.length === 0) showGalleryItem();
     } else if (!hasMainAnimals() && !lensFind) {
       if (elapsed > 8) {
-        const hush = emptyFor >= 45 ? 'A very rare, deep stillness has settled over the forest.'
+        const hush = emptyFor >= 50 ? 'A very rare, deep stillness has settled over the forest.'
           : emptyFor >= 20 ? 'A rare hush. Even the forest is holding its breath.'
           : 'The forest has its own pace. Stay a while.';
         $('sightingHint').textContent = 'Listen to the forest';
@@ -3291,7 +3313,7 @@
       $('messageTitle').textContent = 'Lovely capture';
       $('messageText').textContent = 'A ' + a.rarity.toLowerCase() + ' sighting of ' + a.name.toLowerCase() + '. Your photo has been downloaded.';
     } else {
-      const stillness = hasMainAnimals() ? '' : emptyFor >= 45 ? ' · Very rare stillness' : emptyFor >= 20 ? ' · Rare stillness' : '';
+      const stillness = hasMainAnimals() ? '' : emptyFor >= 50 ? ' · Very rare stillness' : emptyFor >= 20 ? ' · Rare stillness' : '';
       showToast('Snapshot captured · No animal in view' + stillness);
     }
 

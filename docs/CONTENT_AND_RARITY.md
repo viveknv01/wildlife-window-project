@@ -11,26 +11,28 @@ The prototype includes these species and variants. Index `i` matches the array o
 | 2 | Indian Gaur | Common | Small herd (2–4) |
 | 3 | Sambar deer | Uncommon | Small group (2–3) |
 | 4 | Indian peacock | Uncommon | Solo |
-| 5 | Asian Elephant | Rare | Solo (herds appear via events) |
-| 6 | Gaur bull | Rare | Solitary large bull (1) |
-| 7 | Great Indian hornbill | Rare | Flying across canopy |
-| 8 | Indian grey hornbill | Rare | Flying across canopy |
-| 9 | Ibis | Rare | Flying across canopy |
-| 10 | Tiger | Very rare | Solo |
-| 11 | Leopard | Very rare | Solo |
-| 12 | Asian Elephant Tusk | Very rare | Solitary tusker |
-| 13 | Sloth Bear | Very rare | Solo |
-| 14 | Black Leopard | Ultra Rare | Solo melanistic leopard |
-| 15 | Wild Dog | Rare | Small pack (2–4) |
-| 16 | Indian hare | Common | Solo or pair (1–2) |
-| 17 | Jungle babbler | Common | Binoculars or camera · small party (2–4) hopping on the ground |
-| 18 | Indian grey mongoose | Uncommon | Binoculars or camera · solo, quick |
-| 19 | Indian pitta | Rare | Binoculars or camera · solo |
-| 20 | Malabar giant squirrel | Uncommon | Binoculars or camera · perched in the canopy, no walking |
-| 21 | Indian muntjac | Uncommon | Solo or pair (1–2) |
-| 22 | Ruddy mongoose | Uncommon | Binoculars or camera · solo, quick |
-| 23 | Large grey babbler | Common | Binoculars or camera · small party (2–4) hopping on the ground |
-| 24 | Hooded pitta | Rare | Binoculars or camera · solo, black head and green body |
+| 5 | Indian peahen | Common | Small group (1–3), no train, no dance |
+| 6 | Asian Elephant | Rare | Solo (herds appear via events) |
+| 7 | Gaur bull | Rare | Solitary large bull (1) |
+| 8 | Great Indian hornbill | Rare | Flying across canopy |
+| 9 | Indian grey hornbill | Rare | Flying across canopy |
+| 10 | Ibis | Rare | Flying across canopy |
+| 11 | Tiger | Very rare | Solo |
+| 12 | Leopard | Very rare | Solo |
+| 13 | Asian Elephant Tusk | Very rare | Solitary tusker |
+| 14 | Sloth Bear | Very rare | Solo |
+| 15 | Black Leopard | Ultra Rare | Solo melanistic leopard |
+| 16 | Wild Dog | Rare | Small pack (2–4) |
+| 17 | Indian hare | Common | Solo or pair (1–2) |
+| 18 | Jungle babbler | Common | Binoculars or camera · small party (2–4) hopping on the ground |
+| 19 | Indian grey mongoose | Uncommon | Binoculars or camera · solo, quick |
+| 20 | Indian pitta | Rare | Binoculars or camera · solo on the ground |
+| 21 | Malabar giant squirrel | Uncommon | Binoculars or camera · perched in the canopy, no walking |
+| 22 | Indian muntjac | Uncommon | Solo or pair (1–2) |
+| 23 | Ruddy mongoose | Uncommon | Binoculars or camera · solo, quick |
+| 24 | Large grey babbler | Common | Binoculars or camera · small party (2–4) hopping on the ground |
+| 25 | Hooded pitta | Rare | Binoculars or camera · solo, black head and green body |
+| 26 | Orange-headed thrush | Uncommon | Binoculars or camera · perched in the canopy, no walking |
 
 Tiger, Leopard, Black Leopard, and Wild Dog are predators (`predator: true`).
 
@@ -40,9 +42,9 @@ Entries marked `binocularOnly: true` are too small, or too high in the canopy, t
 
 - They do not use the regular spawn table. Every 12–24 seconds one small group may appear, up to 5 small animals at a time, and none arrive while a predator is in the clearing.
 - Ground species always linger, and they arrive without any on-screen announcement. Aiming the lens or viewfinder at one shows its name and rarity.
-- The Malabar giant squirrel perches in the canopy (`perch: true`). It does not walk. Its tail sways and its head bobs while it eats, then it fades as the aim moves toward the edge of the viewfinder and disappears when the optics move away.
+- The Malabar giant squirrel and Orange-headed thrush perch on midground tree crowns (`perch: true`). They do not walk. The squirrel’s tail sways and its head bobs while it eats, then it fades as the aim moves toward the edge of the viewfinder and disappears when the optics move away. The thrush sits on a short branch in the same foliage and stays fully visible through the lens.
 - They do not count toward gatherings, quiet periods, or the conditions for special events.
-- Mongooses run from predators like other prey; the small birds stay. The squirrel stays on its branch.
+- Mongooses run from predators like other prey; the small birds stay. The squirrel and thrush stay on their branches.
 - Capture only identifies them when binoculars or the camera are up and the animal is inside the viewfinder.
 - In the test gallery they are drawn without optics so they can be previewed.
 
@@ -69,7 +71,7 @@ Occasionally, when the clearing is quiet, a weighted rare event can occur instea
 | 6 | Leopard + Black Leopard | Legendary | A golden Indian leopard and a melanistic black leopard walking together |
 | 7 | Wild Dog Pack Hunting | Very rare | A pack of 5–8 wild dogs chases 3–5 spotted deer across the clearing; other prey in view bolt too |
 | 8 | Pair of hornbills | Rare | Two hornbills (both great, or both grey) flying across the canopy together |
-| 9 | Peafowl in the clearing | Common | One peacock with one to three peahens lingering in the grass. The peahen has no train |
+| 9 | Peafowl in the clearing | Common | One peacock with one to three peahens lingering in the grass (more frequent). The peahen has no train; dancing is a separate event |
 
 The pack hunt can also start while prey animals are already in the clearing. The other events only start when the clearing is empty.
 
@@ -115,7 +117,7 @@ When the last animal leaves, the forest stays empty for a while:
 |---|---|---|
 | 4–12 seconds | Most of the time | — |
 | 22–40 seconds | Rare | Rare stillness |
-| 60–120 seconds | Very rare | Very rare stillness |
+| 45–70 seconds | Very rare | Very rare stillness |
 
 All of these settings (linger chance, activity lists, crowd acceptance, quiet delays) are near the top of the behaviour section in `js/game.js`.
 
