@@ -1,6 +1,18 @@
 (() => {
   const canvas = document.getElementById('scene');
-  const ctx = canvas.getContext('2d');
+  const sceneCtx = canvas.getContext('2d');
+  // Drawing goes through this proxy so a capture can paint into a sharper off-screen canvas.
+  let paintCtx = sceneCtx;
+  const ctx = new Proxy(sceneCtx, {
+    get(_target, prop) {
+      const value = paintCtx[prop];
+      return typeof value === 'function' ? value.bind(paintCtx) : value;
+    },
+    set(_target, prop, value) {
+      paintCtx[prop] = value;
+      return true;
+    }
+  });
   const $ = id => document.getElementById(id);
 
   // Set hide: true on any entry to keep that species out of play. No settings UI; edit this list.
@@ -3260,7 +3272,7 @@
 
     const link = document.createElement('a');
     link.download = captureFileName(fileLabel);
-    link.href = camera ? captureViewfinderDataURL() : canvas.toDataURL('image/png');
+    link.href = camera ? captureViewfinderDataURL() : sceneCtx.canvas.toDataURL('image/png');
     link.click();
 
     if (eventShot) {
@@ -3288,6 +3300,14 @@
   }
 
   function captureViewfinderDataURL() {
+    if (settingsApi.getCameraHqCapture && settingsApi.getCameraHqCapture()) {
+      try {
+        const sharp = captureHqViewfinderDataURL();
+        if (sharp) return sharp;
+      } catch (err) {
+        // Low-memory devices can refuse a larger canvas; keep the normal crop.
+      }
+    }
     const s = viewfinderSize();
     const inset = 20;
     const sx = (aim.x - s.w / 2 + inset) * dpr;
@@ -3298,6 +3318,34 @@
     out.width = Math.round(sw);
     out.height = Math.round(sh);
     out.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+    return out.toDataURL('image/png');
+  }
+
+  // Redraws the framed patch at a higher pixel density instead of stretching the on-screen zoom.
+  function captureHqViewfinderDataURL() {
+    const s = viewfinderSize();
+    const inset = 20;
+    const viewW = Math.max(1, s.w - inset * 2);
+    const viewH = Math.max(1, s.h - inset * 2);
+    const longest = Math.max(viewW, viewH);
+    const px = Math.min(1600 / longest, Math.max(dpr * 2, 2));
+    const outW = Math.max(1, Math.round(viewW * px));
+    const outH = Math.max(1, Math.round(viewH * px));
+    const out = document.createElement('canvas');
+    out.width = outW;
+    out.height = outH;
+    const octx = out.getContext('2d');
+    if (!octx) return null;
+    const vx = aim.x - s.w / 2 + inset;
+    const vy = aim.y - s.h / 2 + inset;
+    const prev = paintCtx;
+    paintCtx = octx;
+    try {
+      octx.setTransform(px, 0, 0, px, -vx * px, -vy * px);
+      paintMagnified(last || 0, opticsZoom());
+    } finally {
+      paintCtx = prev;
+    }
     return out.toDataURL('image/png');
   }
 
@@ -3380,7 +3428,9 @@
 
   const settingsApi = window.WildlifeSettings || {
     getAlwaysCurtainRaised: () => false,
-    setAlwaysCurtainRaised: () => {}
+    setAlwaysCurtainRaised: () => {},
+    getCameraHqCapture: () => false,
+    setCameraHqCapture: () => {}
   };
   const sceneWrap = canvas.parentElement;
   const alwaysRaised = settingsApi.getAlwaysCurtainRaised();
@@ -3421,12 +3471,15 @@
   const settingsBtn = $('settingsBtn');
   const settingsPanel = $('settingsPanel');
   const alwaysBox = $('alwaysCurtainRaised');
+  const hqBox = $('cameraHqCapture');
   alwaysBox.checked = alwaysRaised;
+  hqBox.checked = settingsApi.getCameraHqCapture();
   settingsBtn.addEventListener('click', () => {
     const open = settingsPanel.hidden;
     settingsPanel.hidden = !open;
     settingsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
+  hqBox.addEventListener('change', () => settingsApi.setCameraHqCapture(hqBox.checked));
   alwaysBox.addEventListener('change', () => {
     settingsApi.setAlwaysCurtainRaised(alwaysBox.checked);
     if (alwaysBox.checked) {

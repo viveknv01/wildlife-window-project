@@ -1,4 +1,4 @@
-const CACHE = 'wildlife-window-v4';
+const CACHE = 'wildlife-window-v5';
 const FILES = [
   './',
   './index.html',
