@@ -389,7 +389,7 @@
     gaur: ['graze', 'graze', 'sit', 'wait', 'drink', 'walk'],
     boar: ['graze', 'graze', 'wait', 'drink', 'walk', 'sit'],
     elephant: ['graze', 'wait', 'drink', 'walk'],
-    peacock: ['graze', 'wait', 'walk'],
+    peacock: ['graze','graze', 'wait', 'walk'],
     bear: ['graze', 'wait', 'walk', 'sit'],
     tiger: ['walk', 'wait', 'sit', 'drink'],
     leopard: ['walk', 'wait', 'sit', 'drink'],
