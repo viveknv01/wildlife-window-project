@@ -17,6 +17,7 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [x] Improve natural-looking animal silhouettes and movement
 - [x] Curtain-raise opening; wildlife (including rare events) may already be in view
 - [x] Settings: always start with curtains raised (local preference only, default off)
+- [x] Offline browser use after one online visit (service worker; system fonts)
 - [ ] Add gentle background ambience (only with properly licensed/original audio)
 - [ ] Test on real mobile browsers and fix issues
 

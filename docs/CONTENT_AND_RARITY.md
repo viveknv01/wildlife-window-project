@@ -27,6 +27,10 @@ The prototype includes these species and variants. Index `i` matches the array o
 | 18 | Indian grey mongoose | Uncommon | Binoculars or camera · solo, quick |
 | 19 | Indian pitta | Rare | Binoculars or camera · solo |
 | 20 | Malabar giant squirrel | Uncommon | Binoculars or camera · perched in the canopy, no walking |
+| 21 | Indian muntjac | Uncommon | Solo or pair (1–2) |
+| 22 | Ruddy mongoose | Uncommon | Binoculars or camera · solo, quick |
+| 23 | Large grey babbler | Common | Binoculars or camera · small party (2–4) hopping on the ground |
+| 24 | Hooded pitta | Rare | Binoculars or camera · solo, black head and green body |
 
 Tiger, Leopard, Black Leopard, and Wild Dog are predators (`predator: true`).
 
@@ -64,6 +68,8 @@ Occasionally, when the clearing is quiet, a weighted rare event can occur instea
 | 5 | Tuskers fighting | Legendary | Two bull tuskers facing off and sparring with their ivory tusks |
 | 6 | Leopard + Black Leopard | Legendary | A golden Indian leopard and a melanistic black leopard walking together |
 | 7 | Wild Dog Pack Hunting | Very rare | A pack of 5–8 wild dogs chases 3–5 spotted deer across the clearing; other prey in view bolt too |
+| 8 | Pair of hornbills | Rare | Two hornbills (both great, or both grey) flying across the canopy together |
+| 9 | Peafowl in the clearing | Common | One peacock with one to three peahens lingering in the grass. The peahen has no train |
 
 The pack hunt can also start while prey animals are already in the clearing. The other events only start when the clearing is empty.
 

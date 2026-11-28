@@ -27,7 +27,11 @@
     { name: 'Jungle babbler', kind: 'smallBird', sub: 'babbler', binocularOnly: true, rarity: 'Common', weight: 9, scale: 0.75, speedMul: 0.9, color: '#8a7d6c', group: [2, 4] },
     { name: 'Indian grey mongoose', kind: 'mongoose', binocularOnly: true, rarity: 'Uncommon', weight: 5, scale: 0.6, speedMul: 1.5, color: '#8b8475' },
     { name: 'Indian pitta', kind: 'smallBird', sub: 'pitta', binocularOnly: true, rarity: 'Rare', weight: 1.5, scale: 0.7, speedMul: 0.9, color: '#4f8a4a' },
-    { name: 'Malabar giant squirrel', kind: 'squirrel', binocularOnly: true, perch: true, rarity: 'Uncommon', weight: 4, scale: 0.7, color: '#c45a2a' }
+    { name: 'Malabar giant squirrel', kind: 'squirrel', binocularOnly: true, perch: true, rarity: 'Uncommon', weight: 4, scale: 0.7, color: '#c45a2a' },
+    { name: 'Indian muntjac', kind: 'deer', sub: 'muntjac', rarity: 'Uncommon', weight: 8, scale: 0.8, color: '#7a4528', group: [1, 2] },
+    { name: 'Ruddy mongoose', kind: 'mongoose', binocularOnly: true, rarity: 'Uncommon', weight: 4, scale: 0.62, speedMul: 1.4, color: '#b65a32' },
+    { name: 'Large grey babbler', kind: 'smallBird', sub: 'greyBabbler', binocularOnly: true, rarity: 'Common', weight: 6, scale: 0.86, speedMul: 0.85, color: '#8a8d90', group: [2, 4] },
+    { name: 'Hooded pitta', kind: 'smallBird', sub: 'hoodedPitta', binocularOnly: true, rarity: 'Rare', weight: 1.2, scale: 0.72, speedMul: 0.9, color: '#2f8a46' }
   ];
   // hide: true drops a species from spawn and the test gallery. Larger animals use the regular table; small wildlife has its own quiet schedule.
   const playable = animals.filter(a => !a.hide);
@@ -258,6 +262,65 @@
             scale: 0.9 * rand(0.9, 1.05) * sc, speed: run * rand(0.92, 0.99),
             state: 'cross', tx: endX, ty: groundY(baseY + rand(-24, 24)), fast: true,
             color: '#b5562b', isEvent: true
+          });
+        }
+        return list;
+      }
+    },
+    {
+      name: 'Pair of hornbills',
+      rarity: 'Rare',
+      weight: 4,
+      hint: 'Two heavy wingbeats over the canopy',
+      title: 'Hornbills flying together',
+      text: 'A pair of hornbills crosses the treetops side by side.',
+      build: (w, h, sc) => {
+        const great = Math.random() < 0.5;
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        const baseX = dir > 0 ? rand(w * 0.12, w * 0.28) : rand(w * 0.72, w * 0.88);
+        const baseY = rand(h * 0.22, h * 0.4);
+        const spd = rand(32, 42);
+        const list = [];
+        for (let i = 0; i < 2; i++) {
+          list.push({
+            name: great ? 'Great Indian hornbill' : 'Indian grey hornbill',
+            eventName: 'Pair of hornbills',
+            kind: 'hornbill', sub: great ? 'great' : 'grey', fly: true, rarity: 'Rare',
+            x: baseX - dir * i * rand(36, 52),
+            y: baseY + (i === 0 ? 0 : rand(10, 22)),
+            dir, phase: i * 0.7, scale: (great ? 0.9 : 0.78) * sc,
+            alpha: 0, life: rand(14, 20), age: 0, speed: spd * rand(0.97, 1.03),
+            color: great ? '#232624' : '#7e8078', isEvent: true
+          });
+        }
+        return list;
+      }
+    },
+    {
+      name: 'Peafowl in the clearing',
+      rarity: 'Common',
+      weight: 6,
+      hint: 'A peacock with peahens in the grass',
+      title: 'Peafowl together',
+      text: 'A peacock stands in the clearing with one or more peahens.',
+      build: (w, h, sc) => {
+        const count = Math.floor(rand(2, 4.99));
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        const baseX = rand(w * 0.32, w * 0.68);
+        const baseY = rand(h * 0.68, h * 0.77);
+        const list = [];
+        for (let i = 0; i < count; i++) {
+          const hen = i !== 0;
+          list.push({
+            name: hen ? 'Indian peahen' : 'Indian peacock',
+            eventName: 'Peafowl in the clearing',
+            kind: 'peacock', hen, perform: 'linger', stay: rand(16, 24), rarity: 'Common',
+            x: baseX + (i - (count - 1) / 2) * rand(38, 52),
+            y: Math.min(h * 0.8, Math.max(h * 0.64, baseY + rand(-8, 12))),
+            dir, phase: rand(0, 7),
+            scale: (hen ? rand(0.82, 0.92) : 1.02) * sc,
+            speed: rand(16, 22),
+            color: hen ? '#8a6a3e' : '#1b6d72', isEvent: true
           });
         }
         return list;
@@ -931,6 +994,8 @@
 
   function drawDeer(a, t) {
     const isSambar = a.sub === 'sambar' || a.name.includes('Sambar');
+    const isMuntjac = a.sub === 'muntjac';
+    const spotted = !isSambar && !isMuntjac;
     const c = a.color;
     drawShadow(26, 5, 25);
 
@@ -959,7 +1024,7 @@
     ctx.stroke();
 
     // Pale belly on spotted deer
-    if (!isSambar) {
+    if (spotted) {
       ctx.fillStyle = '#e7d1ae';
       ctx.beginPath();
       ctx.ellipse(0, 7, 20, 4, 0, 0, Math.PI);
@@ -985,13 +1050,13 @@
     ctx.beginPath();
     ctx.ellipse(23, -25 + graze, 3, 6, -0.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = isSambar ? '#a98c72' : '#f0d9bb';
+    ctx.fillStyle = isSambar ? '#a98c72' : isMuntjac ? '#d7b48a' : '#f0d9bb';
     ctx.beginPath();
     ctx.ellipse(23.3, -24.6 + graze, 1.4, 3.8, -0.5, 0, Math.PI * 2);
     ctx.fill();
 
     // Paler muzzle and throat
-    ctx.fillStyle = isSambar ? '#8a6a50' : '#ecd9b8';
+    ctx.fillStyle = isSambar ? '#8a6a50' : isMuntjac ? '#c4a07a' : '#ecd9b8';
     ctx.beginPath();
     ell(33, -17.5 + graze, 3.6, 2.4, 0);
     ell(24, -11 + graze * 0.6, 2.4, 4.6, 0.5);
@@ -1005,22 +1070,29 @@
     ctx.fill();
     glint(30.4, -20.5 + graze, 0.5);
 
-    // Antlers (some individuals in herd have larger antlers)
+    // Antlers (some individuals in a herd have larger antlers; muntjac spikes stay short)
     if (a.hasAntlers !== false) {
       ctx.strokeStyle = '#4c3d2e';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = isMuntjac ? 1.6 : 2;
       ctx.beginPath();
-      ctx.moveTo(25, -23 + graze);
-      ctx.quadraticCurveTo(19, -34 + graze, 13, -37 + graze);
-      ctx.moveTo(19, -31 + graze);
-      ctx.lineTo(24, -36 + graze);
-      ctx.moveTo(16, -34 + graze);
-      ctx.lineTo(18, -40 + graze);
+      if (isMuntjac) {
+        ctx.moveTo(25, -23 + graze);
+        ctx.lineTo(22, -31 + graze);
+        ctx.moveTo(27, -22 + graze);
+        ctx.lineTo(29, -29 + graze);
+      } else {
+        ctx.moveTo(25, -23 + graze);
+        ctx.quadraticCurveTo(19, -34 + graze, 13, -37 + graze);
+        ctx.moveTo(19, -31 + graze);
+        ctx.lineTo(24, -36 + graze);
+        ctx.moveTo(16, -34 + graze);
+        ctx.lineTo(18, -40 + graze);
+      }
       ctx.stroke();
     }
 
     // Chital white spots
-    if (!isSambar) {
+    if (spotted) {
       ctx.fillStyle = '#f6e7c8';
       const spots = [[-16, -4], [-10, -6], [-4, -5], [2, -6], [8, -4], [-13, 0], [-7, -1], [-1, 0], [5, -1], [11, 0], [-9, 4], [-2, 4], [4, 4]];
       for (const [sx, sy] of spots) {
@@ -1182,11 +1254,19 @@
   }
 
   function drawPeacock(a, t) {
-    const dancing = a.pose === 'dance';
+    const hen = !!a.hen;
+    const dancing = !hen && a.pose === 'dance';
     drawShadow(dancing ? 28 : 20, 4.5, 22);
 
-    // Fan train when dancing, or long trailing train when walking
-    if (dancing) {
+    // Fan train when dancing, long train when a cock walks, short tail on a hen
+    if (hen) {
+      ctx.fillStyle = '#6b5132';
+      ctx.beginPath();
+      ctx.moveTo(-8, -1);
+      ctx.quadraticCurveTo(-22, 2, -28, 6 + Math.sin(t * 3 + a.phase) * 1.4);
+      ctx.quadraticCurveTo(-18, 7, -6, 3);
+      ctx.fill();
+    } else if (dancing) {
       const sway = Math.sin(t * 3 + a.phase) * 0.06;
       ctx.save();
       ctx.rotate(sway);
@@ -1238,13 +1318,13 @@
     ctx.ellipse(0, 1, 15, 9, -0.1, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#2d8267';
+    ctx.fillStyle = hen ? '#a88452' : '#2d8267';
     ctx.beginPath();
     ctx.ellipse(-2, 1, 10, 5.5, -0.05, 0, Math.PI * 2);
     ctx.fill();
 
     // Scalloped wing feathers
-    ctx.strokeStyle = 'rgba(18,60,48,0.55)';
+    ctx.strokeStyle = hen ? 'rgba(70,48,28,0.55)' : 'rgba(18,60,48,0.55)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     for (const [fx, fy] of [[-8, 0], [-4, -1], [0, 0], [4, 1], [-6, 3], [-2, 3.5], [2, 3.5]]) {
@@ -1253,8 +1333,8 @@
     }
     ctx.stroke();
 
-    // Iridescent neck & head
-    ctx.fillStyle = '#155b75';
+    // Iridescent neck & head on the cock; plain brown on the hen
+    ctx.fillStyle = hen ? '#6e4e32' : '#155b75';
     ctx.beginPath();
     ctx.moveTo(9, 1);
     ctx.quadraticCurveTo(15, -10, 14, -18);
@@ -1266,17 +1346,18 @@
     ctx.arc(16, -18, 4.8, 0, Math.PI * 2);
     ctx.fill();
 
-    // Crown crest
-    ctx.strokeStyle = '#155b75';
+    // Crown crest (smaller and plainer on a hen)
+    ctx.strokeStyle = hen ? '#6e4e32' : '#155b75';
     ctx.lineWidth = 1.2;
-    for (let i = -1; i <= 1; i++) {
+    const crest = hen ? [0] : [-1, 0, 1];
+    for (const i of crest) {
       ctx.beginPath();
       ctx.moveTo(15, -22);
-      ctx.lineTo(13 + i * 2.5, -27);
+      ctx.lineTo(13 + i * 2.5, hen ? -25 : -27);
       ctx.stroke();
-      ctx.fillStyle = '#d8b45c';
+      ctx.fillStyle = hen ? '#c4a06a' : '#d8b45c';
       ctx.beginPath();
-      ctx.arc(13 + i * 2.5, -27, 1.2, 0, Math.PI * 2);
+      ctx.arc(13 + i * 2.5, hen ? -25 : -27, hen ? 0.9 : 1.2, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1289,7 +1370,7 @@
     ctx.fill();
 
     // Sheen down the neck
-    ctx.strokeStyle = 'rgba(120,205,225,0.4)';
+    ctx.strokeStyle = hen ? 'rgba(210,180,130,0.35)' : 'rgba(120,205,225,0.4)';
     ctx.lineWidth = 1.3;
     ctx.beginPath();
     ctx.moveTo(15.5, -14);
@@ -2255,8 +2336,11 @@
   }
 
   function drawSmallBird(a, t) {
-    // Jungle babbler (grey-brown, pale eye, yellowish bill) or Indian pitta (green back, buff belly, bold eye stripe)
+    // Jungle babbler, large grey babbler, Indian pitta, or hooded pitta
     const pitta = a.sub === 'pitta';
+    const hooded = a.sub === 'hoodedPitta';
+    const greyBabbler = a.sub === 'greyBabbler';
+    const shortTail = pitta || hooded;
     const hop = a.moving ? Math.abs(Math.sin(t * 9 + a.phase)) * 2.6 : 0;
     const peck = a.headDrop ? (Math.sin(t * 6 + a.phase) > 0 ? 3 : 0.8) : 0;
     const flick = Math.sin(t * 4 + a.phase) * 0.8;
@@ -2265,7 +2349,7 @@
     ctx.translate(0, -hop);
 
     // Thin legs and toes
-    ctx.strokeStyle = pitta ? '#c9a08e' : '#b9a36a';
+    ctx.strokeStyle = shortTail ? '#c9a08e' : '#b9a36a';
     ctx.lineWidth = 0.8;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -2273,11 +2357,11 @@
     ctx.moveTo(1.2, 3); ctx.lineTo(1.4, 6.4); ctx.lineTo(3, 6.4);
     ctx.stroke();
 
-    // Tail: long and loose on the babbler, a short blue stub on the pitta
-    ctx.fillStyle = pitta ? '#2c5f8a' : '#6b6054';
+    // Tail: long and loose on babblers, a short stub on pittas
+    ctx.fillStyle = pitta ? '#2c5f8a' : hooded ? '#1f5a32' : greyBabbler ? '#6e7378' : '#6b6054';
     ctx.beginPath();
     ctx.moveTo(-4, -0.8);
-    ctx.lineTo(pitta ? -7.5 : -11.5, (pitta ? 1.4 : 2) + flick);
+    ctx.lineTo(shortTail ? -7.5 : -11.5, (shortTail ? 1.4 : 2) + flick);
     ctx.lineTo(-4, 2.2);
     ctx.closePath();
     ctx.fill();
@@ -2287,11 +2371,11 @@
     ctx.beginPath();
     ctx.ellipse(0, 0, 5.6, 4, -0.2, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = pitta ? '#e0b673' : '#b7a78d';
+    ctx.fillStyle = pitta ? '#e0b673' : hooded ? '#d7c48a' : greyBabbler ? '#d5d8dc' : '#b7a78d';
     ctx.beginPath();
     ctx.ellipse(0.8, 1.5, 4.3, 2.3, -0.15, 0, Math.PI);
     ctx.fill();
-    ctx.fillStyle = pitta ? '#3f7a45' : '#73685a';
+    ctx.fillStyle = pitta ? '#3f7a45' : hooded ? '#24723c' : greyBabbler ? '#9aa0a6' : '#73685a';
     ctx.beginPath();
     ctx.ellipse(-1.2, -0.4, 3.8, 2.3, 0.15, 0, TAU);
     ctx.fill();
@@ -2310,11 +2394,11 @@
     ctx.save();
     ctx.translate(4.6, -3 + peck);
     ctx.rotate(peck * 0.12);
-    ctx.fillStyle = pitta ? '#b58a4d' : '#93877a';
+    ctx.fillStyle = pitta ? '#b58a4d' : hooded ? '#1a1c1e' : greyBabbler ? '#7e848a' : '#93877a';
     ctx.beginPath();
     ctx.arc(0, 0, 2.9, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = pitta ? '#2a2420' : '#d9c36a';
+    ctx.fillStyle = shortTail ? '#2a2420' : '#d9c36a';
     ctx.beginPath();
     ctx.moveTo(2.4, -0.8);
     ctx.lineTo(6, 0.2);
@@ -2338,7 +2422,7 @@
       ctx.stroke();
       glint(1.2, -0.6, 0.28);
     } else {
-      ctx.fillStyle = '#f1ecd9';
+      ctx.fillStyle = hooded ? '#f4e7c4' : '#f1ecd9';
       ctx.beginPath();
       ctx.arc(1, -0.6, 0.85, 0, TAU);
       ctx.fill();
@@ -3148,6 +3232,15 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
+  function captureFileName(label) {
+    const slug = String(label || 'snapshot').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'snapshot';
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const stamp = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+      + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+    return 'wildlife-window-' + slug + '-' + stamp + '.png';
+  }
+
   function capture() {
     // Only what the player can actually see counts: the whole window, or just the lens through the binoculars
     const visible = creatures.filter(isSeen);
@@ -3156,6 +3249,9 @@
       : (x, y) => Math.abs(x.x - w / 2) - Math.abs(y.x - w / 2))[0];
     const gather = gatheringOf(visible);
     const gathering = gather.rarity;
+    const eventShot = activeEvent && visible.some(x => x.isEvent);
+    const gatheringShot = !eventShot && a && gathering && RARITY_RANK[gathering] > (RARITY_RANK[a.rarity] || 0);
+    const fileLabel = eventShot ? activeEvent.name : gatheringShot ? 'gathering' : a ? a.name : 'snapshot';
 
     const flash = $('flash');
     flash.classList.remove('active');
@@ -3163,15 +3259,15 @@
     flash.classList.add('active');
 
     const link = document.createElement('a');
-    link.download = 'wildlife-window-snapshot.png';
+    link.download = captureFileName(fileLabel);
     link.href = camera ? captureViewfinderDataURL() : canvas.toDataURL('image/png');
     link.click();
 
-    if (activeEvent && visible.some(x => x.isEvent)) {
+    if (eventShot) {
       showToast('Captured Event: ' + activeEvent.name + ' · ' + activeEvent.rarity);
       $('messageTitle').textContent = 'Remarkable capture!';
       $('messageText').textContent = activeEvent.name + ' (' + activeEvent.rarity + '). Your photo has been downloaded.';
-    } else if (a && gathering && RARITY_RANK[gathering] > (RARITY_RANK[a.rarity] || 0)) {
+    } else if (gatheringShot) {
       showToast('Captured: Gathering of ' + gather.animalCount + ' animals · ' + gather.speciesCount + ' species · ' + gathering);
       $('messageTitle').textContent = gather.tier === 3 ? 'Remarkable capture!' : 'Lovely capture';
       $('messageText').textContent = 'A ' + gathering.toLowerCase() + ' gathering of ' + gather.animalCount

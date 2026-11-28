@@ -10,21 +10,22 @@ This repository contains the playable first prototype and the product/technical 
 
 - One illustrated jungle environment and one window view
 - Morning/daytime atmosphere
-- 21 animal/bird entries (with small herds for deer, gaur, and hares, a rare lone gaur bull, and wild dog packs), including 4 animals that are only visible through the binoculars or the camera (babbler, mongoose, pitta, and a perched Malabar giant squirrel)
-- 8 special wildlife encounter events (Rare, Very rare, Ultra Rare, and Legendary)
+- 25 animal/bird entries (with small herds for deer, gaur, and hares, a rare lone gaur bull, and wild dog packs), including 7 animals that are only visible through the binoculars or the camera (two babblers, two mongooses, two pittas, and a perched Malabar giant squirrel)
+- 10 special wildlife encounter events (Common, Rare, Very rare, Ultra Rare, and Legendary)
 - Animals walk in and out, linger to graze, drink, or rest, and run from predators
 - Random appearances and simple movement
 - Binoculars: a round magnified lens aimed with the mouse or a finger
 - Camera: a rectangular viewfinder with zoom in and out; a capture while it is raised saves only that frame
-- Capture downloads a PNG (the full window, the binocular view, or the camera viewfinder)
+- Capture downloads a PNG named for the sighting plus the local date and time (the full window, the binocular view, or the camera viewfinder)
 - Responsive desktop and mobile browser layout
+- Works offline in the browser after one online visit (service worker). System fonts, so no font download
 - No accounts, backend, database, analytics, or saved player records
 
 ## Run locally
 
 Open `index.html` in a browser, or use VS Code with the Live Server extension.
 
-The site is static and does not require a build command.
+The site is static and does not require a build command. Open it once while online (HTTPS or localhost). After that the page, script, and styles are cached and the game can be used offline, including from Add to Home Screen. When you publish a change, bump the `CACHE` name in `sw.js` so returning visitors pick up the new files. Opening the folder as a local file does not install the offline cache.
 
 ## Start here if you are an AI coding agent
 
@@ -42,12 +43,15 @@ Read these files in order:
 ```text
 wildlife-window/
 ├── index.html             # Browser entry point
+├── manifest.webmanifest   # Installable page
+├── sw.js                  # Offline cache (bump CACHE when publishing)
 ├── css/
 │   └── style.css          # Responsive game interface
 ├── js/
 │   └── game.js            # Canvas rendering and prototype game logic
 ├── assets/
-│   └── README.md          # Guidance for future art/audio assets
+│   ├── README.md          # Guidance for future art/audio assets
+│   └── icons/favicon.svg  # Original tab and install icon
 ├── docs/
 │   ├── PROJECT_OVERVIEW.md
 │   ├── GAME_DESIGN.md
