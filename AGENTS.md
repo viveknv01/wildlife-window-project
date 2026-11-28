@@ -32,7 +32,8 @@ The feeling should be peaceful, curious, atmospheric, and welcoming.
 7. Handle missing browser features gracefully where practical.
 8. Do not claim a feature is implemented unless it is actually present and tested.
 9. Update `docs/CURRENT_STATUS.md` and `docs/ROADMAP.md` when implementation status changes.
-10. Do not add data collection or analytics.
+10. After each completed feature or fix, update `docs/WHATS_NEW.md`: put today’s date (`DD/MM/YYYY`) at the top if needed, then add 1–3 short past-tense outcome bullets under that date (latest work first). Skip tooling-only and docs-only chores unless the player-facing product changed.
+11. Do not add data collection or analytics.
 
 ## Quality checks
 

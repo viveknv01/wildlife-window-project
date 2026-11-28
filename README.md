@@ -37,6 +37,7 @@ Read these files in order:
 4. [`docs/TECHNICAL_ARCHITECTURE.md`](docs/TECHNICAL_ARCHITECTURE.md) – current implementation and extension guidance.
 5. [`docs/ROADMAP.md`](docs/ROADMAP.md) – staged development plan.
 6. [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) – what exists and what is not implemented.
+7. [`docs/WHATS_NEW.md`](docs/WHATS_NEW.md) – dated work log (latest first); update after each completed change.
 
 ## Repository structure
 
@@ -59,6 +60,7 @@ wildlife-window/
 │   ├── CONTENT_AND_RARITY.md
 │   ├── ROADMAP.md
 │   ├── CURRENT_STATUS.md
+│   ├── WHATS_NEW.md
 │   └── DECISIONS.md
 ├── AGENTS.md              # Instructions for AI coding agents
 ├── CONTRIBUTING.md
