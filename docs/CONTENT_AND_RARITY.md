@@ -22,25 +22,33 @@ The prototype includes these species and variants. Index `i` matches the array o
 | 13 | Sloth Bear | Very rare | Solo |
 | 14 | Black Leopard | Ultra Rare | Solo melanistic leopard |
 | 15 | Wild Dog | Rare | Small pack (2–4) |
-| 16 | Indian hare | Common | Binoculars only · solo or pair (1–2) |
-| 17 | Jungle babbler | Common | Binoculars only · small party (2–4) hopping on the ground |
-| 18 | Indian grey mongoose | Uncommon | Binoculars only · solo, quick |
-| 19 | Indian pitta | Rare | Binoculars only · solo |
+| 16 | Indian hare | Common | Solo or pair (1–2) |
+| 17 | Jungle babbler | Common | Binoculars or camera · small party (2–4) hopping on the ground |
+| 18 | Indian grey mongoose | Uncommon | Binoculars or camera · solo, quick |
+| 19 | Indian pitta | Rare | Binoculars or camera · solo |
+| 20 | Malabar giant squirrel | Uncommon | Binoculars or camera · perched in the canopy, no walking |
 
 Tiger, Leopard, Black Leopard, and Wild Dog are predators (`predator: true`).
 
-### Small wildlife (binoculars only)
+### Small wildlife (binoculars or camera only)
 
-Entries marked `binocularOnly: true` are too small to make out with the naked eye. They are in the clearing and keep moving, but are only drawn inside the binocular lens.
+Entries marked `binocularOnly: true` are too small, or too high in the canopy, to make out with the naked eye. They keep their place in the scene, but are only drawn inside the binocular lens or the camera viewfinder.
 
-- They do not use the regular spawn table. Every 12–24 seconds one small group may wander in, up to 4 small animals at a time, and none arrive while a predator is in the clearing.
-- They always linger, and they arrive without any on-screen announcement. Aiming the lens at one shows its name and rarity.
+- They do not use the regular spawn table. Every 12–24 seconds one small group may appear, up to 5 small animals at a time, and none arrive while a predator is in the clearing.
+- Ground species always linger, and they arrive without any on-screen announcement. Aiming the lens or viewfinder at one shows its name and rarity.
+- The Malabar giant squirrel perches in the canopy (`perch: true`). It does not walk. Its tail sways and its head bobs while it eats, then it fades as the aim moves toward the edge of the viewfinder and disappears when the optics move away.
 - They do not count toward gatherings, quiet periods, or the conditions for special events.
-- Hares and mongooses run from predators like other prey; the small birds stay.
-- Capture only identifies them when the binoculars are up and the animal is inside the lens.
-- In the test gallery they are drawn without the binoculars so they can be previewed.
+- Mongooses run from predators like other prey; the small birds stay. The squirrel stays on its branch.
+- Capture only identifies them when binoculars or the camera are up and the animal is inside the viewfinder.
+- In the test gallery they are drawn without optics so they can be previewed.
 
-The small-wildlife settings (`BINOC_ZOOM`, `SMALL_CAP`, lens size in `lensRadius`) are near the top of `js/game.js`.
+To hide a species from play, set `hide: true` on its entry in `js/game.js`. Hidden entries are left out of spawning and the test gallery. There is no settings screen for this.
+
+The small-wildlife settings (`BINOC_ZOOM`, `CAMERA_ZOOMS`, `SMALL_CAP`, lens size in `lensRadius`, camera frame in `viewfinderSize`) are near the top of `js/game.js`.
+
+### Camera
+
+The Camera button raises a rectangular viewfinder. Everything outside that frame is black. Zoom steps are 1.4×, 1.8×, 2.2×, 2.6×, and 3.0×. Binoculars-only wildlife is visible inside the frame. Capture while the camera is up downloads only the viewfinder, not the black surround. Camera and binoculars cannot be up at the same time.
 
 ## Special wildlife events
 

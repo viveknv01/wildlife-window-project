@@ -3,6 +3,8 @@
   const ctx = canvas.getContext('2d');
   const $ = id => document.getElementById(id);
 
+  // Set hide: true on any entry to keep that species out of play. No settings UI; edit this list.
+  // Example: { name: 'Tiger', ..., hide: true }
   const animals = [
     { name: 'Spotted deer', kind: 'deer', sub: 'spotted', rarity: 'Common', weight: 24, scale: 0.96, color: '#b97e48', group: [2, 4] },
     { name: 'Wild boar', kind: 'boar', rarity: 'Common', weight: 20, scale: 0.92, color: '#4d4136', group: [1, 2] },
@@ -20,15 +22,17 @@
     { name: 'Sloth Bear', kind: 'bear', rarity: 'Very rare', weight: 1.0, scale: 1.02, color: '#272322' },
     { name: 'Black Leopard', kind: 'leopard', black: true, predator: true, rarity: 'Ultra Rare', weight: 0.45, scale: 1.14, color: '#1b1d24' },
     { name: 'Wild Dog', kind: 'wildDog', predator: true, rarity: 'Rare', weight: 3, scale: 0.9, color: '#b5562b', group: [2, 4] },
-    // Small wildlife: too small to make out with the naked eye, only drawn through the binoculars (binocularOnly)
-    { name: 'Indian hare', kind: 'rabbit', binocularOnly: true, rarity: 'Common', weight: 10, scale: 0.8, color: '#9a7b58', group: [1, 2] },
+    { name: 'Indian hare', kind: 'rabbit', rarity: 'Common', weight: 10, scale: 0.8, color: '#9a7b58', group: [1, 2] },
+    // Small wildlife: too small to make out with the naked eye, only drawn through binoculars or the camera (binocularOnly)
     { name: 'Jungle babbler', kind: 'smallBird', sub: 'babbler', binocularOnly: true, rarity: 'Common', weight: 9, scale: 0.75, speedMul: 0.9, color: '#8a7d6c', group: [2, 4] },
     { name: 'Indian grey mongoose', kind: 'mongoose', binocularOnly: true, rarity: 'Uncommon', weight: 5, scale: 0.6, speedMul: 1.5, color: '#8b8475' },
-    { name: 'Indian pitta', kind: 'smallBird', sub: 'pitta', binocularOnly: true, rarity: 'Rare', weight: 1.5, scale: 0.7, speedMul: 0.9, color: '#4f8a4a' }
+    { name: 'Indian pitta', kind: 'smallBird', sub: 'pitta', binocularOnly: true, rarity: 'Rare', weight: 1.5, scale: 0.7, speedMul: 0.9, color: '#4f8a4a' },
+    { name: 'Malabar giant squirrel', kind: 'squirrel', binocularOnly: true, perch: true, rarity: 'Uncommon', weight: 4, scale: 0.7, color: '#c45a2a' }
   ];
-  // Larger animals share the regular spawn table; small wildlife comes and goes on its own quiet schedule
-  const mainAnimals = animals.filter(a => !a.binocularOnly);
-  const smallAnimals = animals.filter(a => a.binocularOnly);
+  // hide: true drops a species from spawn and the test gallery. Larger animals use the regular table; small wildlife has its own quiet schedule.
+  const playable = animals.filter(a => !a.hide);
+  const mainAnimals = playable.filter(a => !a.binocularOnly);
+  const smallAnimals = playable.filter(a => a.binocularOnly);
 
   const events = [
     {
@@ -273,10 +277,13 @@
   let eventCooldown = 0;
   let pointer = { x: 0, y: 0 };
 
-  // ---- Binoculars: a round magnified lens that follows the mouse or finger ----
-  const BINOC_ZOOM = 2.2;       // magnification inside the lens
-  const SMALL_CAP = 4;          // most small (binocular-only) animals in the clearing at once
+  // ---- Optics: round binoculars, or a rectangular camera viewfinder ----
+  const BINOC_ZOOM = 2.2;       // fixed magnification inside the binocular lens
+  const CAMERA_ZOOMS = [1.4, 1.8, 2.2, 2.6, 3.0];
+  const SMALL_CAP = 5;          // most small (binocular-only) animals in the clearing at once
   let binoculars = false;
+  let camera = false;
+  let cameraZoomIndex = 2;      // starts at 2.2×
   let aim = { x: 450, y: 260 }; // point of the scene the lens is centred on (canvas coordinates)
   let lensFind = null;          // small animal currently noticed through the lens
 
@@ -311,10 +318,11 @@
     wildDog: ['walk', 'wait', 'sit', 'drink'],
     rabbit: ['graze', 'graze', 'wait', 'walk', 'rest'],
     mongoose: ['walk', 'walk', 'wait', 'graze', 'drink'],
-    smallBird: ['graze', 'graze', 'walk', 'walk', 'wait']
+    smallBird: ['graze', 'graze', 'walk', 'walk', 'wait'],
+    squirrel: ['eat', 'wait']
   };
   // Local Y of the feet for each kind (used for the lying-down pose)
-  const FEET_Y = { deer: 24, boar: 21, gaur: 28, elephant: 35, peacock: 21, bear: 21, tiger: 24, leopard: 24, wildDog: 21, rabbit: 9, mongoose: 8, smallBird: 6.5 };
+  const FEET_Y = { deer: 24, boar: 21, gaur: 28, elephant: 35, peacock: 21, bear: 21, tiger: 24, leopard: 24, wildDog: 21, rabbit: 9, mongoose: 8, smallBird: 6.5, squirrel: 8 };
 
   let gaitAmp = 1;              // 1 while walking, 0 while standing still (scales leg swing)
   let wasEmpty = true, emptyFor = 0, gatherTier = 0;
@@ -326,16 +334,31 @@
   const inView = a => a.x > 0 && a.x < w && a.y < h + 10;
   const pond = () => ({ x: w * 0.6, y: h * 0.735, rx: Math.max(30, w * 0.07), ry: Math.max(5, h * 0.015) });
   // Prey run from predators; birds (including peafowl) and tuskers hold their ground
-  const isPrey = c => !c.fly && !c.predator && c.kind !== 'peacock' && c.kind !== 'smallBird' && !(c.kind === 'elephant' && c.tusks);
+  const isPrey = c => !c.fly && !c.predator && !c.perch && c.kind !== 'peacock' && c.kind !== 'smallBird' && !(c.kind === 'elephant' && c.tusks);
 
-  // Binocular helpers
+  // Optics helpers. Binoculars use a round lens at a fixed zoom; the camera uses a rectangle and a stepped zoom.
+  const opticsOn = () => binoculars || camera;
+  const opticsZoom = () => camera ? CAMERA_ZOOMS[cameraZoomIndex] : BINOC_ZOOM;
   const lensRadius = () => Math.min(w, h) * 0.3;
+  const viewfinderSize = () => {
+    const vw = Math.min(w * 0.62, h * 1.05);
+    const vh = Math.min(h * 0.7, vw * 0.72);
+    return { w: vw, h: vh };
+  };
   const aimDist = a => Math.hypot(a.x - aim.x, a.y - aim.y);
-  const inLens = a => aimDist(a) < lensRadius() / BINOC_ZOOM + 16 * a.scale;
-  // Small wildlife is only drawn through the binoculars (always shown in the test gallery)
-  const isShown = a => !a.binocularOnly || binoculars || !!testMode;
-  // What the player can actually see right now: inside the lens, or anywhere in the window without it
-  const isSeen = a => binoculars ? inLens(a) : inView(a) && isShown(a);
+  function inViewfinder(a) {
+    const z = opticsZoom();
+    const pad = 16 * (a.scale || 1);
+    if (camera) {
+      const s = viewfinderSize();
+      return Math.abs(a.x - aim.x) < s.w / (2 * z) + pad && Math.abs(a.y - aim.y) < s.h / (2 * z) + pad;
+    }
+    return aimDist(a) < lensRadius() / z + pad;
+  }
+  // Small wildlife is only drawn through binoculars or the camera (always shown in the test gallery)
+  const isShown = a => !a.binocularOnly || opticsOn() || !!testMode;
+  // What the player can actually see right now: inside the viewfinder, or anywhere in the window without optics
+  const isSeen = a => opticsOn() ? inViewfinder(a) : inView(a) && isShown(a);
   const hasMainAnimals = () => creatures.some(c => !c.binocularOnly);
   // Gathering labels only — does not change predator flee, events, or spawn behaviour beyond soft crowd chance.
   // Species: 5+ Rare, 8+ Very rare. Animals: 9+ Rare, 16+ Very rare, 30+ Legendary. Take the higher tier.
@@ -349,11 +372,20 @@
     const tier = Math.max(bySpecies, byAnimals);
     return { animalCount, speciesCount, tier, rarity: GATHER_LABEL[tier] };
   }
-  // Keep the lens far enough from the edges that it never looks past the painted scene
+  // Keep the magnified patch far enough from the edges that it never looks past the painted scene
   function setAim(x, y) {
-    const m = lensRadius() / BINOC_ZOOM;
-    aim.x = clamp(x, m, w - m);
-    aim.y = clamp(y, m, h - m);
+    const z = opticsZoom();
+    let mx, my;
+    if (camera) {
+      const s = viewfinderSize();
+      // Keep the whole rectangle on the canvas. Zoom only changes what is magnified inside it.
+      mx = s.w / 2;
+      my = s.h / 2;
+    } else {
+      mx = my = lensRadius() / z;
+    }
+    aim.x = clamp(x, mx, Math.max(mx, w - mx));
+    aim.y = clamp(y, my, Math.max(my, h - my));
   }
 
   function resize() {
@@ -364,7 +396,7 @@
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (binoculars) setAim(aim.x, aim.y);
+    if (opticsOn()) setAim(aim.x, aim.y);
     else setAim(w / 2, h / 2);
     rebuildBackdrop();
   }
@@ -2318,6 +2350,125 @@
     ctx.restore();
   }
 
+  // Malabar giant squirrel: perched in the canopy, tail and a nibble, no locomotion
+  function drawSquirrel(a, t) {
+    const c = a.color;
+    const eat = a.activity === 'eat';
+    const nibble = eat ? Math.abs(Math.sin(t * 6.2 + a.phase)) : 0;
+    const sway = Math.sin(t * 1.5 + a.phase);
+
+    ctx.strokeStyle = '#4a3b2c';
+    ctx.lineWidth = 3.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-18, 9);
+    ctx.quadraticCurveTo(0, 13, 20, 8);
+    ctx.stroke();
+    ctx.strokeStyle = '#6a5640';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-14, 8.2);
+    ctx.quadraticCurveTo(2, 11, 16, 7.6);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(-4, 0);
+    ctx.rotate(-0.35 + sway * 0.1);
+    ctx.fillStyle = shadeHex(c, -0.22);
+    ctx.beginPath();
+    ctx.moveTo(0, 2);
+    ctx.quadraticCurveTo(-16, -2, -10, -24);
+    ctx.quadraticCurveTo(2, -32, 12, -18);
+    ctx.quadraticCurveTo(8, -6, 2, 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = shadeHex(c, 0.18);
+    ctx.beginPath();
+    ctx.ellipse(-6, -16, 4.2, 7, -0.4, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = coat(c, -6, 5);
+    ctx.beginPath();
+    ctx.ellipse(-1, 1, 8.5, 6.2, -0.2, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#f3e2c4';
+    ctx.beginPath();
+    ctx.ellipse(1.5, 3.2, 5.5, 2.4, -0.1, 0, Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = shadeHex(c, -0.28);
+    ctx.beginPath();
+    ctx.moveTo(4, 3);
+    ctx.lineTo(6, 8.2);
+    ctx.moveTo(1, 3.4);
+    ctx.lineTo(2, 8.4);
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = shadeHex(c, -0.28);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(7, -5.2 + nibble * 1.4);
+    ctx.rotate(eat ? 0.35 + nibble * 0.15 : 0.08 + sway * 0.03);
+    ctx.fillStyle = shadeHex(c, -0.08);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 4.2, 3.5, 0.1, 0, TAU);
+    ctx.fill();
+    const ear = (bx, ang) => {
+      ctx.save();
+      ctx.translate(bx, -2.2);
+      ctx.rotate(ang);
+      ctx.fillStyle = shadeHex(c, -0.15);
+      ctx.beginPath();
+      ctx.ellipse(0, -2.2, 1.15, 2.4, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#e7c9a4';
+      ctx.beginPath();
+      ctx.moveTo(0, -4.2);
+      ctx.lineTo(0.7, -2.6);
+      ctx.lineTo(-0.5, -2.6);
+      ctx.fill();
+      ctx.restore();
+    };
+    ear(-1.6, -0.35);
+    ear(0.6, 0.15);
+    ctx.fillStyle = '#1c1612';
+    ctx.beginPath();
+    ctx.arc(1.3, -0.4, 0.7, 0, TAU);
+    ctx.fill();
+    glint(1.55, -0.7, 0.25);
+    ctx.fillStyle = '#3a2a22';
+    ctx.beginPath();
+    ctx.ellipse(3.6, 0.8 + nibble * 0.4, 1.1, 0.7, 0.2, 0, TAU);
+    ctx.fill();
+    if (eat) {
+      ctx.strokeStyle = '#2a211b';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(2.6, 1.5);
+      ctx.lineTo(5.2, 2.4 + nibble);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function squirrelAlpha(a) {
+    if (a.kind !== 'squirrel' || !opticsOn()) return 1;
+    const z = opticsZoom();
+    let d;
+    if (camera) {
+      const s = viewfinderSize();
+      d = Math.max(Math.abs(a.x - aim.x) / (s.w / (2 * z)), Math.abs(a.y - aim.y) / (s.h / (2 * z)));
+    } else {
+      d = aimDist(a) / (lensRadius() / z);
+    }
+    if (d <= 0.35) return 1;
+    if (d >= 1) return 0;
+    const u = (d - 0.35) / 0.65;
+    const s = u * u * (3 - 2 * u);
+    return 1 - s;
+  }
+
   function drawAnimal(a, t) {
     const still = !a.moving && !a.fly;
     const acting = a.state === 'act' && still && !a.pose;
@@ -2333,7 +2484,13 @@
     ctx.scale(a.dir * a.scale, a.scale);
     const bob = a.fly ? Math.sin(t * 5 + a.phase) * 3.5 : still ? Math.sin(t * 1.4 + a.phase) * 0.4 : Math.sin(tt * 3.2 + a.phase) * 1.6;
     ctx.translate(0, bob);
-    ctx.globalAlpha = 1;
+    if (a.kind === 'squirrel') {
+      const fade = squirrelAlpha(a);
+      if (fade <= 0.02) { ctx.restore(); return; }
+      ctx.globalAlpha = fade;
+    } else {
+      ctx.globalAlpha = 1;
+    }
 
     if (lying) {
       // Lying down: settle the body onto the ground and tuck the legs out of sight
@@ -2366,6 +2523,7 @@
     else if (a.kind === 'rabbit') drawRabbit(a, t);
     else if (a.kind === 'mongoose') drawMongoose(a, t);
     else if (a.kind === 'smallBird') drawSmallBird(a, t);
+    else if (a.kind === 'squirrel') drawSquirrel(a, t);
 
     ctx.restore();
   }
@@ -2449,6 +2607,16 @@
   function updateCreature(a, dt) {
     a.age += dt;
     a.moving = false;
+
+    if (a.state === 'perch') {
+      if (elapsed >= a.leaveAt) { a.gone = true; return; }
+      a.actTimer -= dt;
+      if (a.actTimer <= 0) {
+        a.activity = a.activity === 'eat' ? 'wait' : 'eat';
+        a.actTimer = a.activity === 'eat' ? rand(4, 8) : rand(2, 5);
+      }
+      return;
+    }
 
     // A predator stepping into view startles any prey on screen
     if (a.predator && !a.alarmed && a.x > w * 0.03 && a.x < w * 0.97) {
@@ -2555,12 +2723,38 @@
   }
 
   function spawnAnimal(forcedSpec, opts = {}) {
-    const spec = forcedSpec || pickWeighted(animals);
+    const spec = forcedSpec || pickWeighted(playable);
     const sc = Math.min(w / 850, 1.15);
     const ss = speedScale();
     const fly = !!spec.fly;
     const gallery = !!opts.longLife;
     const count = spec.group ? Math.floor(rand(spec.group[0], spec.group[1] + 0.99)) : 1;
+
+    if (spec.perch) {
+      const stay = gallery ? 40 : rand(18, 36);
+      for (let i = 0; i < count; i++) {
+        creatures.push({
+          ...spec,
+          phase: rand(0, 7),
+          scale: spec.scale * (i === 0 ? 1 : rand(0.9, 1.05)) * sc,
+          alpha: 1,
+          age: 0,
+          moving: false,
+          dir: Math.random() < 0.5 ? -1 : 1,
+          state: 'perch',
+          activity: 'eat',
+          actTimer: rand(3, 7),
+          x: clamp(rand(w * 0.16, w * 0.82) + (i - (count - 1) / 2) * 36, w * 0.1, w * 0.9),
+          y: rand(h * 0.2, h * 0.4),
+          leaveAt: elapsed + stay
+        });
+      }
+      if (opts.quiet) return;
+      $('sightingHint').textContent = opts.testLabel || 'A rustle in the canopy';
+      $('messageTitle').textContent = (opts.testLabel ? opts.testLabel + ' · ' : '') + spec.name + ' · ' + spec.rarity;
+      $('messageText').textContent = opts.testHint || ('Look up into the branches for the ' + spec.name.toLowerCase() + '.');
+      return;
+    }
 
     // Behaviour mode: most ground animals linger; some simply pass through. Birds fly across.
     const inFrame = !!opts.inFrame;
@@ -2702,7 +2896,8 @@
       return;
     }
 
-    const spec = pickWeighted(mainAnimals);
+    const spec = mainAnimals.length ? pickWeighted(mainAnimals) : null;
+    if (!spec) return;
     // No newcomers wander in on top of a hunting predator
     if (predatorHere && isPrey(spec)) return;
     // The busier the clearing, the less likely another group joins (aligns with animal-count gathering tiers).
@@ -2717,13 +2912,13 @@
   function showGalleryItem() {
     creatures = [];
     activeEvent = null;
-    const list = testMode === '1A' ? animals : events;
+    const list = testMode === '1A' ? playable : events;
     testIndex = ((testIndex % list.length) + list.length) % list.length;
     const label = 'Test ' + testIndex + '/' + (list.length - 1);
     const hint = 'Tap the scene for next · Capture also advances';
     if (testMode === '1A') {
-      spawnAnimal(animals[testIndex], { longLife: true, testLabel: label, testHint: hint });
-      showToast(label + ' · ' + animals[testIndex].name + ' · ' + animals[testIndex].rarity);
+      spawnAnimal(playable[testIndex], { longLife: true, testLabel: label, testHint: hint });
+      showToast(label + ' · ' + playable[testIndex].name + ' · ' + playable[testIndex].rarity);
     } else {
       spawnEvent(events[testIndex], { longLife: true, testLabel: label, testHint: hint });
       showToast(label + ' · ' + events[testIndex].name + ' · ' + events[testIndex].rarity);
@@ -2733,7 +2928,7 @@
 
   function advanceGallery() {
     if (!testMode || elapsed < galleryHoldUntil) return;
-    const list = testMode === '1A' ? animals : events;
+    const list = testMode === '1A' ? playable : events;
     testIndex = (testIndex + 1) % list.length;
     // Keep deep-linkable index in the address bar without reloading
     const next = new URL(location.href);
@@ -2782,6 +2977,47 @@
     ctx.stroke();
   }
 
+  function roundRectPath(x, y, rw, rh, r) {
+    const rad = Math.min(r, rw / 2, rh / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + rw, y, x + rw, y + rh, rad);
+    ctx.arcTo(x + rw, y + rh, x, y + rh, rad);
+    ctx.arcTo(x, y + rh, x, y, rad);
+    ctx.arcTo(x, y, x + rw, y, rad);
+    ctx.closePath();
+  }
+
+  function drawViewfinder(x, y, rw, rh) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.5;
+    roundRectPath(x + 1, y + 1, rw - 2, rh - 2, 8);
+    ctx.stroke();
+    const L = Math.min(16, rw * 0.07);
+    ctx.strokeStyle = '#f4efe2';
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'square';
+    const corners = [[x, y, 1, 1], [x + rw, y, -1, 1], [x, y + rh, 1, -1], [x + rw, y + rh, -1, -1]];
+    for (const [cx, cy, dx, dy] of corners) {
+      ctx.beginPath();
+      ctx.moveTo(cx + dx * L, cy);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx, cy + dy * L);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function paintMagnified(t, zoom) {
+    ctx.save();
+    ctx.translate(aim.x, aim.y);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-aim.x, -aim.y);
+    drawScene(t, true);
+    ctx.restore();
+  }
+
   function draw(t, dt) {
     ctx.clearRect(0, 0, w, h);
 
@@ -2790,7 +3026,19 @@
     creatures.sort((a, b) => a.y - b.y);
 
     drawScene(t, false);
-    if (binoculars) {
+    if (camera) {
+      const s = viewfinderSize();
+      const vx = aim.x - s.w / 2;
+      const vy = aim.y - s.h / 2;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+      ctx.save();
+      roundRectPath(vx, vy, s.w, s.h, 8);
+      ctx.clip();
+      paintMagnified(t, opticsZoom());
+      ctx.restore();
+      drawViewfinder(vx, vy, s.w, s.h);
+    } else if (binoculars) {
       // Through the binoculars: the window dims to a faint outline for finding your bearings,
       // and a round, magnified patch of forest around the aim point comes into focus
       const R = lensRadius();
@@ -2800,10 +3048,7 @@
       ctx.beginPath();
       ctx.arc(aim.x, aim.y, R, 0, TAU);
       ctx.clip();
-      ctx.translate(aim.x, aim.y);
-      ctx.scale(BINOC_ZOOM, BINOC_ZOOM);
-      ctx.translate(-aim.x, -aim.y);
-      drawScene(t, true);
+      paintMagnified(t, BINOC_ZOOM);
       ctx.restore();
       drawLens(R);
     }
@@ -2814,14 +3059,16 @@
 
     // Noticing a small animal through the lens is its own quiet reward
     let found = null;
-    if (binoculars && !testMode) {
+    if (opticsOn() && !testMode) {
       for (const c of creatures) {
-        if (c.binocularOnly && inLens(c) && (!found || aimDist(c) < aimDist(found))) found = c;
+        if (c.binocularOnly && inViewfinder(c) && squirrelAlpha(c) > 0.2 && (!found || aimDist(c) < aimDist(found))) found = c;
       }
       if (found && (!lensFind || lensFind.name !== found.name)) {
-        $('sightingHint').textContent = 'Spotted through the binoculars';
+        $('sightingHint').textContent = camera ? 'Spotted through the camera' : 'Spotted through the binoculars';
         $('messageTitle').textContent = found.name + ' · ' + found.rarity;
-        $('messageText').textContent = 'A small visitor you would never have noticed with the naked eye.';
+        $('messageText').textContent = found.perch
+          ? 'A flash of russet in the branches, only clear when you look closely.'
+          : 'A small visitor you would never have noticed with the naked eye.';
       }
     }
     lensFind = found;
@@ -2883,7 +3130,7 @@
       nextSmall -= dt;
       if (nextSmall <= 0) {
         const smallCount = creatures.filter(c => c.binocularOnly).length;
-        if (smallCount < SMALL_CAP && !creatures.some(c => c.predator)) {
+        if (smallAnimals.length && smallCount < SMALL_CAP && !creatures.some(c => c.predator)) {
           spawnAnimal(pickWeighted(smallAnimals), { quiet: true });
         }
         nextSmall = rand(12, 24);
@@ -2904,7 +3151,7 @@
   function capture() {
     // Only what the player can actually see counts: the whole window, or just the lens through the binoculars
     const visible = creatures.filter(isSeen);
-    const a = visible.sort(binoculars
+    const a = visible.sort(opticsOn()
       ? (x, y) => aimDist(x) - aimDist(y)
       : (x, y) => Math.abs(x.x - w / 2) - Math.abs(y.x - w / 2))[0];
     const gather = gatheringOf(visible);
@@ -2917,7 +3164,7 @@
 
     const link = document.createElement('a');
     link.download = 'wildlife-window-snapshot.png';
-    link.href = canvas.toDataURL('image/png');
+    link.href = camera ? captureViewfinderDataURL() : canvas.toDataURL('image/png');
     link.click();
 
     if (activeEvent && visible.some(x => x.isEvent)) {
@@ -2944,44 +3191,93 @@
     if (testMode) setTimeout(advanceGallery, 450);
   }
 
+  function captureViewfinderDataURL() {
+    const s = viewfinderSize();
+    const inset = 20;
+    const sx = (aim.x - s.w / 2 + inset) * dpr;
+    const sy = (aim.y - s.h / 2 + inset) * dpr;
+    const sw = Math.max(1, (s.w - inset * 2) * dpr);
+    const sh = Math.max(1, (s.h - inset * 2) * dpr);
+    const out = document.createElement('canvas');
+    out.width = Math.round(sw);
+    out.height = Math.round(sh);
+    out.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+    return out.toDataURL('image/png');
+  }
+
+  function syncOpticsUi() {
+    const wrap = canvas.parentElement;
+    const binocBtn = $('binoculars');
+    const camBtn = $('camera');
+    binocBtn.classList.toggle('active', binoculars);
+    binocBtn.setAttribute('aria-pressed', binoculars ? 'true' : 'false');
+    $('binocLabel').textContent = binoculars ? 'Lower binoculars' : 'Binoculars';
+    camBtn.classList.toggle('active', camera);
+    camBtn.setAttribute('aria-pressed', camera ? 'true' : 'false');
+    $('cameraLabel').textContent = camera ? 'Lower camera' : 'Camera';
+    $('zoomControls').hidden = !camera;
+    wrap.classList.toggle('binoc', binoculars);
+    wrap.classList.toggle('camera', camera);
+    const z = CAMERA_ZOOMS[cameraZoomIndex];
+    $('zoomLabel').textContent = z.toFixed(1) + '×';
+    $('zoomOut').disabled = cameraZoomIndex <= 0;
+    $('zoomIn').disabled = cameraZoomIndex >= CAMERA_ZOOMS.length - 1;
+  }
+
   function setBinoculars(on) {
     binoculars = on;
+    if (on) camera = false;
     lensFind = null;
-    // Raising or lowering the binoculars starts from the middle of the window
     setAim(w / 2, h / 2);
-    const btn = $('binoculars');
-    btn.classList.toggle('active', on);
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    $('binocLabel').textContent = on ? 'Lower binoculars' : 'Binoculars';
-    canvas.parentElement.classList.toggle('binoc', on);
+    syncOpticsUi();
     showToast(on ? 'Binoculars up · move or drag to look around' : 'Binoculars lowered');
   }
 
-  // The lens follows the mouse, or a dragging finger. A finger sits low in the lens so it does not cover the view.
+  function setCamera(on) {
+    camera = on;
+    if (on) binoculars = false;
+    lensFind = null;
+    setAim(w / 2, h / 2);
+    syncOpticsUi();
+    showToast(on ? 'Camera up · move or drag to frame the shot' : 'Camera lowered');
+  }
+
+  function stepCameraZoom(dir) {
+    const next = clamp(cameraZoomIndex + dir, 0, CAMERA_ZOOMS.length - 1);
+    if (next === cameraZoomIndex) return;
+    cameraZoomIndex = next;
+    setAim(aim.x, aim.y);
+    syncOpticsUi();
+  }
+
+  // The lens follows the mouse, or a dragging finger. A finger sits low so it does not cover the view.
   function aimFromPointer(e) {
     if (curtainsClosed) return;
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left;
     pointer.y = e.clientY - r.top;
-    if (!binoculars) return;
-    const lift = e.pointerType === 'touch' ? lensRadius() * 0.6 : 0;
+    if (!opticsOn()) return;
+    const lift = e.pointerType === 'touch' ? (camera ? viewfinderSize().h * 0.28 : lensRadius() * 0.6) : 0;
     setAim(pointer.x, pointer.y - lift);
   }
 
   $('binoculars').addEventListener('click', () => { if (!curtainsClosed) setBinoculars(!binoculars); });
+  $('camera').addEventListener('click', () => { if (!curtainsClosed) setCamera(!camera); });
+  $('zoomIn').addEventListener('click', () => { if (!curtainsClosed && camera) stepCameraZoom(1); });
+  $('zoomOut').addEventListener('click', () => { if (!curtainsClosed && camera) stepCameraZoom(-1); });
   $('capture').addEventListener('click', () => { if (!curtainsClosed) capture(); });
   canvas.addEventListener('pointermove', aimFromPointer);
   canvas.addEventListener('pointerdown', e => {
     if (curtainsClosed) return;
     // Keep following the finger even if it slides off the scene
-    if (binoculars && canvas.setPointerCapture) {
+    if (opticsOn() && canvas.setPointerCapture) {
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* not supported for this pointer */ }
     }
     aimFromPointer(e);
   });
   if (testMode) {
     // Tapping the scene advances the gallery, unless the tap is aiming the binoculars
-    canvas.addEventListener('pointerup', () => { if (!binoculars) advanceGallery(); });
+    canvas.addEventListener('pointerup', () => { if (!opticsOn()) advanceGallery(); });
   }
   window.addEventListener('resize', resize);
   resize();
@@ -2996,6 +3292,9 @@
 
   function setControlsLocked(locked) {
     $('binoculars').disabled = locked;
+    $('camera').disabled = locked;
+    $('zoomIn').disabled = locked || cameraZoomIndex >= CAMERA_ZOOMS.length - 1;
+    $('zoomOut').disabled = locked || cameraZoomIndex <= 0;
     $('capture').disabled = locked;
   }
 
@@ -3049,7 +3348,7 @@
   if (testMode) {
     sceneWrap.classList.add('curtains-skip', 'curtains-open');
     $('curtain').setAttribute('aria-hidden', 'true');
-    const listLen = testMode === '1A' ? animals.length : events.length;
+    const listLen = testMode === '1A' ? playable.length : events.length;
     testIndex = ((testIndex % listLen) + listLen) % listLen;
     showGalleryItem();
   } else {

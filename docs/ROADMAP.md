@@ -28,7 +28,8 @@ The roadmap is staged. Do not implement later-stage ideas unless the project own
 - [ ] Optional animal sound cues
 - [x] Better capture feedback and camera framing
 - [x] Binoculars: toggle button, round lens aimed by mouse or finger
-- [x] Small wildlife visible only through the binoculars (hare, babbler, mongoose, pitta)
+- [x] Small wildlife visible only through binoculars or the camera (babbler, mongoose, pitta)
+- [x] Malabar giant squirrel perched in the canopy (binoculars or camera; fades as the aim moves away)
 - [ ] Binoculars-only monkey troop (backlog — ideas only, not scheduled)
   - Rare; groups of 3–7
   - Mostly in the trees / canopy, not the clearing floor

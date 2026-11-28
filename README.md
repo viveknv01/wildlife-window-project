@@ -10,12 +10,13 @@ This repository contains the playable first prototype and the product/technical 
 
 - One illustrated jungle environment and one window view
 - Morning/daytime atmosphere
-- 20 animal/bird entries (with small herds for deer and gaur, a rare lone gaur bull, and wild dog packs), including 4 small animals that are only visible through the binoculars
+- 21 animal/bird entries (with small herds for deer, gaur, and hares, a rare lone gaur bull, and wild dog packs), including 4 animals that are only visible through the binoculars or the camera (babbler, mongoose, pitta, and a perched Malabar giant squirrel)
 - 8 special wildlife encounter events (Rare, Very rare, Ultra Rare, and Legendary)
 - Animals walk in and out, linger to graze, drink, or rest, and run from predators
 - Random appearances and simple movement
 - Binoculars: a round magnified lens aimed with the mouse or a finger
-- Capture downloads the current canvas as a PNG
+- Camera: a rectangular viewfinder with zoom in and out; a capture while it is raised saves only that frame
+- Capture downloads a PNG (the full window, the binocular view, or the camera viewfinder)
 - Responsive desktop and mobile browser layout
 - No accounts, backend, database, analytics, or saved player records
 
