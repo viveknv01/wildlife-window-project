@@ -1,4 +1,4 @@
-const CACHE = 'wildlife-window-v2';
+const CACHE = 'wildlife-window-v4';
 const FILES = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const FILES = [
   './js/settings.js',
   './js/game.js',
   './manifest.webmanifest',
-  './assets/icons/favicon.svg'
+  './assets/icons/favicon.png'
 ];
 
 self.addEventListener('install', event => {

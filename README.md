@@ -51,7 +51,7 @@ wildlife-window/
 │   └── game.js            # Canvas rendering and prototype game logic
 ├── assets/
 │   ├── README.md          # Guidance for future art/audio assets
-│   └── icons/favicon.svg  # Original tab and install icon
+│   └── icons/favicon.png  # Forest window tab and install icon
 ├── docs/
 │   ├── PROJECT_OVERVIEW.md
 │   ├── GAME_DESIGN.md

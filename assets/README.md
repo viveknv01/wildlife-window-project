@@ -2,7 +2,7 @@
 
 The current prototype draws its forest and simplified animal shapes procedurally using Canvas. It does not require bundled image or audio files.
 
-`assets/icons/favicon.svg` is an original mark for the browser tab and the installable page. It is not a third-party asset.
+`assets/icons/favicon.png` is the forest-window mark for the browser tab and the installable page (192×192 PNG, kept small for mobile).
 
 When adding assets later:
 
