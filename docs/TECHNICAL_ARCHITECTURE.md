@@ -16,7 +16,7 @@ No build step or backend is required.
 ```text
 index.html
    ├── css/style.css
-   ├── js/settings.js   # curtain preference only
+   ├── js/settings.js   # curtain and camera-capture preferences only
    └── js/game.js
          ├── animal definitions and rarity weights
          ├── opening curtain reveal
@@ -49,7 +49,7 @@ Do not split files just for the sake of abstraction. Keep the current small prot
 
 ## Privacy and storage
 
-The application must not save player records (sightings, captures, history, or profiles). The only stored preference is `ww_always_curtain_raised` in `localStorage` (default off): whether the window curtains start already raised. Do not introduce sessionStorage, IndexedDB, cookies, database writes, or analytics. The only intentional output from Capture is a PNG download initiated by the user.
+The application must not save player records (sightings, captures, history, or profiles). Two UI preferences may be stored in `localStorage`, both default off: `ww_always_curtain_raised` (curtains start raised) and `ww_camera_hq_capture` (redraw the camera frame at higher resolution on Capture). Do not introduce sessionStorage, IndexedDB, cookies, database writes, or analytics. The only intentional output from Capture is a PNG download initiated by the user.
 
 ## Hosting
 

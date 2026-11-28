@@ -25,19 +25,19 @@ Last updated: 2026-11-28
 - Any species can be kept out of play by setting `hide: true` on its entry in `js/game.js` (no settings UI)
 - Dev-only URL gallery for testing (not normal play): `?test=1A` cycles animals, `?test=1E` cycles events; optional `&i=N` starts at index N; tap scene or Capture to advance. Full index lists are in [`CONTENT_AND_RARITY.md`](CONTENT_AND_RARITY.md)
 - Opening curtains: on each visit the window starts covered and the fabric raises smoothly. The clearing may already hold wildlife (often empty, sometimes a normal group, and on a lucky roll a Rare or rarer event). Animals are placed in frame, not walking in from off-screen
-- Settings (footer): “Always raise curtains on open” is off by default and is the only value stored (`localStorage` key `ww_always_curtain_raised`). Sightings and captures are still not saved. The test gallery skips the curtain
+- Settings (footer): “Always raise curtains on open” (`ww_always_curtain_raised`) and “Sharper camera captures” (`ww_camera_hq_capture`) are off by default. Those are the only values stored. Sightings and captures are still not saved. The test gallery skips the curtain
 
 ## Known limitations
 
 - Animal art is procedural Canvas vector drawing rather than external sprite sheets.
 - No sound effects or ambient audio yet.
 - No actual simulated weather or time-of-day lighting transition; the clock label is a lightweight display.
-- No persistent collection, player history, or records (by design). One curtain preference may be stored locally.
+- No persistent collection, player history, or records (by design). Two UI preferences may be stored locally: curtains already raised, and sharper camera captures.
 - Rarity weights and behaviour settings are configured in `js/game.js`.
 - Sitting and grazing poses are simple (the body lowers or leans); only deer lower their neck. No species-specific eating animation yet.
 - Behaviour was checked with a headless simulation and in a desktop browser at narrow width; not yet tested on real phones. Binocular aiming by touch was checked with simulated touch events only.
 - Through the binoculars the whole scene is drawn twice per frame (dimmed window plus magnified lens); frame rate on lower-end phones has not been measured.
-- The downloaded capture is the rendered scene canvas. With the camera raised it is cropped to the viewfinder, not a separate high-resolution sensor output.
+- The downloaded capture is the rendered scene canvas. With the camera raised it is cropped to the viewfinder. If “Sharper camera captures” is on, that framed patch is redrawn up to about 1600px on the long side; if that fails, the normal crop is used. Binocular captures stay a crop of the lens.
 
 ## Next recommended tasks
 
